@@ -1,7 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-// REPLACE THESE WITH YOUR ACTUAL SUPABASE PROJECT CREDENTIALS
-const supabaseUrl = 'https://your-project.supabase.co';
-const supabaseKey = 'your-anon-key';
+const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL || '';
+const supabaseKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY || '';
+
+if (!supabaseUrl || !supabaseKey) {
+  console.warn('Supabase URL or Key missing. Please check your .env.local file.');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseKey);

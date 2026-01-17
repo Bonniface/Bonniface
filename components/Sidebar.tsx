@@ -57,7 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, currentView, onChangeView, onLo
               <ShieldCheck className="text-white" size={24} />
             </div>
             <div>
-              <h1 className="text-slate-900 dark:text-white font-bold text-lg tracking-tight">Antigravity</h1>
+              <h1 className="text-slate-900 dark:text-white font-bold text-lg tracking-tight">Bonniface</h1>
               <p className="text-slate-500 text-xs font-medium">Portal v2.0</p>
             </div>
           </div>

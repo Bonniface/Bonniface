@@ -45,7 +45,7 @@ const App: React.FC = () => {
   // Supabase Auth Listener
   useEffect(() => {
     // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    (supabase.auth as any).getSession().then(({ data: { session } }: any) => {
       if (session) {
         handleAuthUser(session);
       }
@@ -53,7 +53,7 @@ const App: React.FC = () => {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = (supabase.auth as any).onAuthStateChange((_event: any, session: any) => {
       if (session) {
         handleAuthUser(session);
       } else {
@@ -129,7 +129,7 @@ const App: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await (supabase.auth as any).signOut();
     setNavMode('LANDING');
     setIsMobileMenuOpen(false);
   };

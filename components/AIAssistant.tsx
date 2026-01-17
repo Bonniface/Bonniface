@@ -20,7 +20,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, projects, us
   const [messages, setMessages] = useState<ChatMessage[]>([
     { 
       id: 1, 
-      text: `Hi ${user.name.split(' ')[0]}! I'm your Antigravity Assistant. I can check your project status, analyze budgets, or answer questions about our services. How can I help?`, 
+      text: `Hi ${user.name.split(' ')[0]}! I'm your Bonniface Assistant. I can check your project status, analyze budgets, or answer questions about our services. How can I help?`, 
       sender: 'ai' 
     }
   ]);
@@ -34,7 +34,19 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, projects, us
     if (!isOpen || chatSessionRef.current) return;
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const apiKey = (import.meta as any).env.VITE_GOOGLE_API_KEY;
+      
+      if (!apiKey) {
+        console.error("VITE_GOOGLE_API_KEY is missing in .env.local");
+        setMessages(prev => [...prev, { 
+            id: Date.now(), 
+            text: "System Error: API Key is missing. Please configure VITE_GOOGLE_API_KEY in your environment variables.", 
+            sender: 'ai' 
+        }]);
+        return;
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
 
       // Define Tools
       const listProjectsTool: FunctionDeclaration = {
@@ -51,7 +63,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, projects, us
       chatSessionRef.current = ai.chats.create({
         model: 'gemini-3-pro-preview',
         config: {
-          systemInstruction: `You are the Antigravity Assistant for the Bonniface Portal. 
+          systemInstruction: `You are the Bonniface Assistant for the Bonniface Portal. 
           Your goal is to help clients manage their AI & Data Science projects.
           You are professional, concise, and helpful.
           Always use the 'listProjects' tool if the user asks about "my projects", "status", "budget", or "progress".
@@ -147,7 +159,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, projects, us
             <Bot size={20} />
           </div>
           <div>
-            <h3 className="font-bold text-sm">Antigravity AI</h3>
+            <h3 className="font-bold text-sm">Bonniface AI</h3>
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
               <span className="text-[10px] opacity-90">Gemini 3 Pro</span>
