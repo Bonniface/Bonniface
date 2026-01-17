@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Send, Bot, User, Sparkles, Loader2 } from 'lucide-react';
+import { X, Send, Bot, User, Sparkles, Loader2, AlertTriangle } from 'lucide-react';
 import { GoogleGenAI, Type, FunctionDeclaration, Tool } from "@google/genai";
 import { Project, User as UserType } from '../types';
 
@@ -34,8 +34,22 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, projects, us
     if (!isOpen || chatSessionRef.current) return;
 
     try {
-      const apiKey = (import.meta as any).env.VITE_GOOGLE_API_KEY;
+      // Safely access env var
+      const getEnvVar = (key: string) => {
+        let val = '';
+        try { if ((import.meta as any)?.env?.[key]) val = (import.meta as any).env[key]; } catch {}
+        if (!val) try { if (process?.env?.[key]) val = process.env[key] || ''; } catch {}
+        if (!val && typeof window !== 'undefined') val = (window as any).process?.env?.[key] || '';
+        return val ? val.trim() : '';
+      };
       
+      let apiKey = getEnvVar('VITE_GOOGLE_API_KEY');
+      
+      // Basic cleanup if the key has accidental text appended (common in copy-paste)
+      if (apiKey.includes('placeholder')) {
+         apiKey = apiKey.split('placeholder')[0].trim();
+      }
+
       if (!apiKey) {
         console.error("VITE_GOOGLE_API_KEY is missing in .env.local");
         setMessages(prev => [...prev, { 

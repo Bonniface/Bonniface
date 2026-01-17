@@ -11,9 +11,9 @@ import AddPaymentMethod from './components/AddPaymentMethod';
 import AIAssistant from './components/AIAssistant';
 import LandingPage from './components/LandingPage';
 import { MyWorkPage } from './components/MyWorkPage';
-import { ADMIN_USER, CLIENT_USER, ADMIN_CHATS, CLIENT_CHATS, MOCK_PROJECTS, MOCK_INVOICES, MOCK_PAYMENT_METHODS } from './constants';
-import { User, UserRole, ViewState, Project, PaymentMethod, Invoice } from './types';
-import { Repeat, Menu } from 'lucide-react';
+import { CLIENT_USER, ADMIN_CHATS, CLIENT_CHATS, MOCK_PROJECTS, MOCK_INVOICES, MOCK_PAYMENT_METHODS, ADMIN_USER } from './constants';
+import { User, UserRole, ViewState, Project, PaymentMethod, Invoice, ChatSession } from './types';
+import { Menu } from 'lucide-react';
 import { supabase } from './lib/supabaseClient';
 import * as api from './lib/api';
 
@@ -29,6 +29,7 @@ const App: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
   
   // Navigation State: 'LANDING', 'WORK', 'APP'
@@ -57,14 +58,16 @@ const App: React.FC = () => {
       if (session) {
         handleAuthUser(session);
       } else {
-        if (navMode === 'APP') {
+        // If session is lost (logout/expiry) and we are not in Backdoor Admin mode, redirect to Landing.
+        // We check ID against ADMIN_USER to ensure the backdoor session persists even without a Supabase session.
+        if (navMode === 'APP' && currentUser.id !== ADMIN_USER.id) {
            setNavMode('LANDING');
         }
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navMode]);
+  }, [navMode, currentUser.id]);
 
   const handleAuthUser = async (session: any) => {
     const email = session.user.email;
@@ -75,15 +78,19 @@ const App: React.FC = () => {
 
     if (isBonniface) {
         userRole = UserRole.ADMIN;
-        // In real app, fetch profile from DB
     }
     
+    // Attempt to get avatar from metadata (common in OAuth), fallback to generated based on ID/Role
+    const avatarUrl = session.user.user_metadata?.avatar_url || 
+                      session.user.user_metadata?.picture || 
+                      (isBonniface ? 'https://picsum.photos/seed/bonniface/200/200' : `https://picsum.photos/seed/${session.user.id}/200/200`);
+
     const user: User = { 
         id: session.user.id,
         name: userName,
         email: email || '',
         role: userRole,
-        avatarUrl: isBonniface ? 'https://picsum.photos/seed/bonniface/200/200' : 'https://picsum.photos/seed/user/200/200'
+        avatarUrl: avatarUrl
     };
 
     setCurrentUser(user);
@@ -95,20 +102,33 @@ const App: React.FC = () => {
 
   const loadData = async (user: User) => {
     setIsLoadingData(true);
+    
+    // BACKDOOR: Check if this is the mock admin user ID
+    if (user.id === ADMIN_USER.id) {
+        // Load mock data for demo purposes
+        setProjects(MOCK_PROJECTS);
+        setInvoices(MOCK_INVOICES);
+        setPaymentMethods(MOCK_PAYMENT_METHODS);
+        setChatSessions(ADMIN_CHATS);
+        setIsLoadingData(false);
+        return;
+    }
+
     try {
         const isAdmin = user.role === UserRole.ADMIN;
         
         // Parallel fetching
-        const [fetchedProjects, fetchedInvoices, fetchedPaymentMethods] = await Promise.all([
+        const [fetchedProjects, fetchedInvoices, fetchedPaymentMethods, fetchedChats] = await Promise.all([
             api.fetchProjects(user.id, isAdmin),
             api.fetchInvoices(user.name, isAdmin),
-            api.fetchPaymentMethods(user.id)
+            api.fetchPaymentMethods(user.id),
+            api.fetchUserChats(user.id)
         ]);
 
-        // If DB is empty, fall back to constants for demo purposes
-        setProjects(fetchedProjects.length > 0 ? fetchedProjects : MOCK_PROJECTS);
-        setInvoices(fetchedInvoices.length > 0 ? fetchedInvoices : MOCK_INVOICES);
-        setPaymentMethods(fetchedPaymentMethods.length > 0 ? fetchedPaymentMethods : []);
+        setProjects(fetchedProjects);
+        setInvoices(fetchedInvoices);
+        setPaymentMethods(fetchedPaymentMethods);
+        setChatSessions(fetchedChats);
 
     } catch (error) {
         console.error("Failed to load data", error);
@@ -124,20 +144,40 @@ const App: React.FC = () => {
     setCurrentView('PROJECT_DETAILS');
   };
 
-  const handleLogin = () => {
-    // handled by auth listener
+  const handleLogin = (backdoorUser?: User) => {
+    // If backdoor user is provided (from AuthModal hidden button), bypass Supabase listener
+    if (backdoorUser) {
+        setCurrentUser(backdoorUser);
+        setNavMode('APP');
+        loadData(backdoorUser);
+    }
+    // Otherwise, normal auth flow handled by the onAuthStateChange listener
   };
 
   const handleLogout = async () => {
     await (supabase.auth as any).signOut();
+    setCurrentUser(CLIENT_USER); // Reset to default state
     setNavMode('LANDING');
     setIsMobileMenuOpen(false);
   };
 
-  // Refreshes data after adding a payment method
   const handlePaymentMethodAdded = (newMethod: PaymentMethod) => {
     setPaymentMethods(prev => [...prev, newMethod]);
-    // Optionally trigger a full re-fetch if needed
+  };
+
+  const handleProjectCreated = (newProject: Project) => {
+      setProjects(prev => [newProject, ...prev]);
+      setCurrentView('PROJECTS');
+  };
+
+  const handleRefreshChats = async () => {
+      // If mock admin, do nothing or fetch from constants to reset
+      if (currentUser.id === ADMIN_USER.id) return;
+
+      const fetchedChats = await api.fetchUserChats(currentUser.id);
+      if (fetchedChats) {
+          setChatSessions(fetchedChats);
+      }
   };
 
   if (navMode === 'LANDING') {
@@ -150,8 +190,8 @@ const App: React.FC = () => {
         <AIAssistant 
           isOpen={isAIOpen} 
           onClose={() => setIsAIOpen(false)} 
-          projects={[]} // No projects in landing context
-          user={CLIENT_USER} // Dummy user for landing
+          projects={[]} 
+          user={CLIENT_USER} 
         />
         {!isAIOpen && (
           <div 
@@ -213,10 +253,15 @@ const App: React.FC = () => {
           />
         );
       case 'MESSAGES':
-        const chats = currentUser.role === UserRole.ADMIN ? ADMIN_CHATS : CLIENT_CHATS;
-        return <ChatInterface sessions={chats} currentUser={currentUser} />;
+        return (
+            <ChatInterface 
+                sessions={chatSessions} 
+                currentUser={currentUser} 
+                onRefresh={handleRefreshChats}
+            />
+        );
       case 'NEW_PROJECT':
-        return <NewProjectWizard />;
+        return <NewProjectWizard user={currentUser} onProjectCreated={handleProjectCreated} />;
       case 'INVOICES':
       case 'BILLING':
         return (

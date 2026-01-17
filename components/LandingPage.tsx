@@ -8,9 +8,10 @@ import {
 import { AuthModal } from './AuthModal';
 import ThreeHero from './ThreeHero';
 import { motion } from 'framer-motion';
+import { User } from '../types';
 
 interface LandingPageProps {
-  onLogin: () => void;
+  onLogin: (user?: User) => void;
   onNavigateToWork: () => void;
 }
 

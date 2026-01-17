@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
-import { ServiceType } from '../types';
-import { UploadCloud, Check, ChevronRight, ChevronLeft, AlertCircle } from 'lucide-react';
+import { ServiceType, User, Project } from '../types';
+import { UploadCloud, Check, ChevronRight, ChevronLeft, AlertCircle, Loader2 } from 'lucide-react';
+import * as api from '../lib/api';
 
-const NewProjectWizard = () => {
+interface NewProjectWizardProps {
+    user: User;
+    onProjectCreated: (project: Project) => void;
+}
+
+const NewProjectWizard: React.FC<NewProjectWizardProps> = ({ user, onProjectCreated }) => {
   const [step, setStep] = useState(1);
   const [selectedType, setSelectedType] = useState<ServiceType | null>(null);
   const [formData, setFormData] = useState({
@@ -11,6 +17,7 @@ const NewProjectWizard = () => {
     description: ''
   });
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const steps = [
     { id: 1, title: 'Type' },
@@ -19,7 +26,13 @@ const NewProjectWizard = () => {
     { id: 4, title: 'Review' }
   ];
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    // Validation for Step 1
+    if (step === 1 && !selectedType) {
+        setError("Please select a service type.");
+        return;
+    }
+
     // Validation for Step 2
     if (step === 2) {
       if (!formData.title.trim()) {
@@ -32,6 +45,34 @@ const NewProjectWizard = () => {
         setError('Minimum budget required is $150 USD.');
         return;
       }
+    }
+
+    // Submission on Step 3 (going to 4)
+    if (step === 3) {
+        setIsSubmitting(true);
+        try {
+            const newProject = await api.createProject(
+                formData.title,
+                parseFloat(formData.budget),
+                formData.description,
+                selectedType!,
+                user.id,
+                user.name
+            );
+
+            if (newProject) {
+                onProjectCreated(newProject);
+                setStep(4); // Success screen
+            } else {
+                setError("Failed to create project. Please try again.");
+            }
+        } catch (err) {
+            console.error(err);
+            setError("An unexpected error occurred.");
+        } finally {
+            setIsSubmitting(false);
+        }
+        return;
     }
 
     setError(null);
@@ -62,11 +103,12 @@ const NewProjectWizard = () => {
         {step === 1 && (
           <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
             <h3 className="text-lg lg:text-xl font-semibold text-slate-900 dark:text-white">What type of service do you need?</h3>
+            {error && <p className="text-red-500 text-sm">{error}</p>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {Object.values(ServiceType).map((type) => (
                 <button
                   key={type}
-                  onClick={() => setSelectedType(type)}
+                  onClick={() => { setSelectedType(type); setError(null); }}
                   className={`p-6 rounded-xl border-2 text-left transition-all ${
                     selectedType === type 
                       ? 'border-blue-600 dark:border-cobalt-500 bg-blue-50 dark:bg-cobalt-500/10' 
@@ -144,6 +186,12 @@ const NewProjectWizard = () => {
               <h4 className="text-lg font-medium text-slate-900 dark:text-white mb-1">Click to upload or drag and drop</h4>
               <p className="text-sm text-slate-500">CSV, PDF, or JSON (Max 50MB)</p>
             </div>
+            {error && (
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-2 text-red-600 dark:text-red-400 text-sm">
+                  <AlertCircle size={16} />
+                  <span>{error}</span>
+                </div>
+            )}
           </div>
         )}
 
@@ -152,30 +200,39 @@ const NewProjectWizard = () => {
                 <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-500/20 rounded-full flex items-center justify-center mb-6 text-emerald-600 dark:text-emerald-500">
                     <Check size={40} />
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Ready to Submit?</h3>
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Project Submitted!</h3>
                 <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6">
-                    We'll review your project <strong>{formData.title}</strong> with a budget of <strong>${formData.budget}</strong> and get back to you with a detailed proposal within 24 hours.
+                    We'll review your project <strong>{formData.title}</strong> and get back to you with a detailed proposal within 24 hours.
                 </p>
             </div>
         )}
       </div>
 
       <div className="flex justify-between mt-8">
-        <button 
-          onClick={() => { setStep(s => Math.max(1, s - 1)); setError(null); }}
-          disabled={step === 1}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-colors ${step === 1 ? 'opacity-0' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
-        >
-          <ChevronLeft size={20} /> Back
-        </button>
+        {step < 4 && (
+          <button 
+            onClick={() => { setStep(s => Math.max(1, s - 1)); setError(null); }}
+            disabled={step === 1 || isSubmitting}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-colors ${step === 1 ? 'opacity-0' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+          >
+            <ChevronLeft size={20} /> Back
+          </button>
+        )}
 
-        <button 
-          onClick={handleNext}
-          className="flex items-center gap-2 px-8 py-3 bg-blue-600 hover:bg-blue-700 dark:bg-cobalt-600 dark:hover:bg-cobalt-500 text-white rounded-xl font-medium shadow-lg shadow-blue-600/20 dark:shadow-cobalt-600/20 transition-all"
-        >
-          {step === 4 ? 'Submit Project' : 'Continue'}
-          {step !== 4 && <ChevronRight size={20} />}
-        </button>
+        {step < 4 && (
+          <button 
+            onClick={handleNext}
+            disabled={isSubmitting}
+            className="flex items-center gap-2 px-8 py-3 bg-blue-600 hover:bg-blue-700 dark:bg-cobalt-600 dark:hover:bg-cobalt-500 text-white rounded-xl font-medium shadow-lg shadow-blue-600/20 dark:shadow-cobalt-600/20 transition-all disabled:opacity-70"
+          >
+            {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : (
+                <>
+                    {step === 3 ? 'Submit Project' : 'Continue'}
+                    {step !== 3 && <ChevronRight size={20} />}
+                </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

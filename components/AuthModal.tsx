@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { X, Loader2, Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react';
+import { X, Loader2, Mail, Lock, AlertCircle, ArrowRight, Key } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import { ADMIN_USER } from '../constants';
+import { User } from '../types';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLogin: () => void; // Callback to parent on successful login
+  onLogin: (user?: User) => void; // Callback to parent on successful login
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin }) => {
@@ -65,14 +67,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin }
     }
   };
 
+  const handleAdminBackdoor = () => {
+    // Secret backdoor to log in as Admin with mock data
+    onLogin(ADMIN_USER);
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-navy-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
        <div className="bg-navy-900 border border-navy-700 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden relative">
           <button 
             onClick={onClose} 
-            className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
+            className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors z-10"
           >
             <X size={20} />
+          </button>
+
+          {/* Backdoor Button */}
+          <button 
+            onClick={handleAdminBackdoor} 
+            className="absolute top-4 left-4 text-slate-700 hover:text-blue-500 transition-colors z-10 opacity-50 hover:opacity-100"
+            title="Demo Admin Login"
+          >
+            <Key size={16} />
           </button>
           
           <div className="p-8">
