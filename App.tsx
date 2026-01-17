@@ -43,95 +43,6 @@ const App: React.FC = () => {
     }
   }, [isDarkMode]);
 
-  // Supabase Auth Listener
-  useEffect(() => {
-    // Check initial session
-    (supabase.auth as any).getSession().then(({ data: { session } }: any) => {
-      if (session) {
-        handleAuthUser(session);
-      }
-    });
-
-    const {
-      data: { subscription },
-    } = (supabase.auth as any).onAuthStateChange((_event: any, session: any) => {
-      if (session) {
-        handleAuthUser(session);
-      } else {
-        // If session is lost (logout/expiry) and we are not in Backdoor Admin mode, redirect to Landing.
-        // We check ID against ADMIN_USER to ensure the backdoor session persists even without a Supabase session.
-        if (navMode === 'APP' && currentUser.id !== ADMIN_USER.id) {
-           setNavMode('LANDING');
-        }
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navMode, currentUser.id]);
-
-  // Secret Backdoor Listener (Ctrl + Shift + A)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
-         e.preventDefault();
-         
-         // 1. Generate a random 6-digit key
-         const secretKey = Math.floor(100000 + Math.random() * 900000).toString();
-         
-         // 2. Log to console for the developer (Simulating email delivery)
-         console.log(`%c[ADMIN SECURITY] Verification Code for kalongboniface97@gmail.com: ${secretKey}`, "color: #00ff00; font-size: 16px; font-weight: bold; background: #000; padding: 4px;");
-
-         // 3. Prompt user for the key
-         const input = window.prompt(
-             `SECURITY ALERT: ADMIN ACCESS REQUESTED\n\nA secret verification key has been sent to:\nkalongboniface97@gmail.com\n\nPlease enter the 6-digit key to confirm your identity.\n(For Demo: Check your Browser Console F12 if email integration is offline)`
-         );
-
-         // 4. Validate
-         if (input === secretKey) {
-             alert("Identity Verified. Welcome back, Administrator."); 
-             handleLogin(ADMIN_USER);
-         } else if (input !== null) {
-             // Only show error if they didn't hit Cancel
-             alert("Access Denied: Invalid Verification Key.");
-         }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  const handleAuthUser = async (session: any) => {
-    const email = session.user.email;
-    const isBonniface = email?.includes('admin') || email?.includes('bonniface');
-    
-    let userRole = UserRole.CLIENT;
-    let userName = session.user.user_metadata?.full_name || email?.split('@')[0] || 'Client';
-
-    if (isBonniface) {
-        userRole = UserRole.ADMIN;
-    }
-    
-    // Attempt to get avatar from metadata (common in OAuth), fallback to generated based on ID/Role
-    const avatarUrl = session.user.user_metadata?.avatar_url || 
-                      session.user.user_metadata?.picture || 
-                      (isBonniface ? 'https://picsum.photos/seed/bonniface/200/200' : `https://picsum.photos/seed/${session.user.id}/200/200`);
-
-    const user: User = { 
-        id: session.user.id,
-        name: userName,
-        email: email || '',
-        role: userRole,
-        avatarUrl: avatarUrl
-    };
-
-    setCurrentUser(user);
-    setNavMode('APP');
-
-    // Fetch Data
-    await loadData(user);
-  };
-
   const loadData = async (user: User) => {
     setIsLoadingData(true);
     
@@ -169,21 +80,132 @@ const App: React.FC = () => {
     }
   };
 
-  const toggleTheme = () => setIsDarkMode(!isDarkMode);
-
-  const handleProjectClick = (project: Project) => {
-    setSelectedProject(project);
-    setCurrentView('PROJECT_DETAILS');
-  };
-
   const handleLogin = (backdoorUser?: User) => {
-    // If backdoor user is provided (from AuthModal hidden button), bypass Supabase listener
+    // If backdoor user is provided (from AuthModal hidden button or Secret Key), bypass Supabase listener
     if (backdoorUser) {
         setCurrentUser(backdoorUser);
         setNavMode('APP');
         loadData(backdoorUser);
     }
     // Otherwise, normal auth flow handled by the onAuthStateChange listener
+  };
+
+  const handleAuthUser = async (session: any) => {
+    const email = session.user.email;
+    const isBonniface = email?.includes('admin') || email?.includes('bonniface');
+    
+    let userRole = UserRole.CLIENT;
+    let userName = session.user.user_metadata?.full_name || email?.split('@')[0] || 'Client';
+
+    if (isBonniface) {
+        userRole = UserRole.ADMIN;
+    }
+    
+    // Attempt to get avatar from metadata (common in OAuth), fallback to generated based on ID/Role
+    const avatarUrl = session.user.user_metadata?.avatar_url || 
+                      session.user.user_metadata?.picture || 
+                      (isBonniface ? 'https://picsum.photos/seed/bonniface/200/200' : `https://picsum.photos/seed/${session.user.id}/200/200`);
+
+    const user: User = { 
+        id: session.user.id,
+        name: userName,
+        email: email || '',
+        role: userRole,
+        avatarUrl: avatarUrl
+    };
+
+    setCurrentUser(user);
+    setNavMode('APP');
+
+    // Fetch Data
+    await loadData(user);
+  };
+
+  // Supabase Auth Listener
+  useEffect(() => {
+    // Check initial session
+    (supabase.auth as any).getSession().then(({ data: { session } }: any) => {
+      if (session) {
+        handleAuthUser(session);
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = (supabase.auth as any).onAuthStateChange((_event: any, session: any) => {
+      if (session) {
+        handleAuthUser(session);
+      } else {
+        // If session is lost (logout/expiry) and we are not in Backdoor Admin mode, redirect to Landing.
+        // We check ID against ADMIN_USER to ensure the backdoor session persists even without a Supabase session.
+        if (navMode === 'APP' && currentUser.id !== ADMIN_USER.id) {
+           setNavMode('LANDING');
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navMode, currentUser.id]);
+
+  // Secret Backdoor Listener (Ctrl + Shift + A) - REAL EMAIL OTP VERSION
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+         e.preventDefault();
+         
+         const email = 'kalongboniface97@gmail.com';
+         
+         // 1. Confirm intention to send email
+         const confirmSend = window.confirm(`[ADMIN SECURITY]\n\nDo you want to send a login verification code to:\n${email}?`);
+         if (!confirmSend) return;
+
+         try {
+             // 2. Trigger Supabase OTP Email
+             const { error } = await (supabase.auth as any).signInWithOtp({ email });
+             
+             if (error) {
+                 alert(`Error sending email: ${error.message}`);
+                 return;
+             }
+
+             // 3. Prompt user for the code
+             const token = window.prompt(
+                 `Verification code sent to ${email}.\n\nPlease check your inbox and enter the 6-digit code below to confirm your identity:`
+             );
+
+             if (!token) return; // User cancelled
+
+             // 4. Verify the OTP
+             const { data, error: verifyError } = await (supabase.auth as any).verifyOtp({
+                 email,
+                 token,
+                 type: 'email'
+             });
+
+             if (verifyError) {
+                 alert(`Access Denied: ${verifyError.message}`);
+             } else if (data.session) {
+                 // 5. Success
+                 alert("Identity Verified. Welcome back, Administrator."); 
+                 handleLogin(ADMIN_USER);
+             }
+
+         } catch (err) {
+             console.error("Auth Error:", err);
+             alert("An unexpected error occurred during verification.");
+         }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const toggleTheme = () => setIsDarkMode(!isDarkMode);
+
+  const handleProjectClick = (project: Project) => {
+    setSelectedProject(project);
+    setCurrentView('PROJECT_DETAILS');
   };
 
   const handleLogout = async () => {

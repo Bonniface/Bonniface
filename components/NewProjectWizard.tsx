@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ServiceType, User, Project } from '../types';
-import { UploadCloud, Check, ChevronRight, ChevronLeft, AlertCircle, Loader2 } from 'lucide-react';
+import { UploadCloud, Check, ChevronRight, ChevronLeft, AlertCircle, Loader2, FileText, X } from 'lucide-react';
 import * as api from '../lib/api';
 
 interface NewProjectWizardProps {
@@ -16,6 +16,7 @@ const NewProjectWizard: React.FC<NewProjectWizardProps> = ({ user, onProjectCrea
     budget: '',
     description: ''
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -57,7 +58,8 @@ const NewProjectWizard: React.FC<NewProjectWizardProps> = ({ user, onProjectCrea
                 formData.description,
                 selectedType!,
                 user.id,
-                user.name
+                user.name,
+                selectedFile || undefined
             );
 
             if (newProject) {
@@ -66,9 +68,9 @@ const NewProjectWizard: React.FC<NewProjectWizardProps> = ({ user, onProjectCrea
             } else {
                 setError("Failed to create project. Please try again.");
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            setError("An unexpected error occurred.");
+            setError(err.message || "An unexpected error occurred.");
         } finally {
             setIsSubmitting(false);
         }
@@ -82,6 +84,13 @@ const NewProjectWizard: React.FC<NewProjectWizardProps> = ({ user, onProjectCrea
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (error) setError(null); // Clear error on type
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+          setSelectedFile(e.target.files[0]);
+          setError(null);
+      }
   };
 
   return (
@@ -179,13 +188,45 @@ const NewProjectWizard: React.FC<NewProjectWizardProps> = ({ user, onProjectCrea
         {step === 3 && (
           <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
             <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Upload Training Data</h3>
-            <div className="border-2 border-dashed border-slate-300 dark:border-navy-600 rounded-2xl p-10 flex flex-col items-center justify-center text-center hover:bg-slate-50 dark:hover:bg-navy-900/50 transition-colors cursor-pointer group">
-              <div className="w-16 h-16 bg-slate-100 dark:bg-navy-900 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <UploadCloud className="text-blue-600 dark:text-cobalt-500" size={32} />
-              </div>
-              <h4 className="text-lg font-medium text-slate-900 dark:text-white mb-1">Click to upload or drag and drop</h4>
-              <p className="text-sm text-slate-500">CSV, PDF, or JSON (Max 50MB)</p>
-            </div>
+            
+            <input 
+                type="file" 
+                id="wizard-file-upload" 
+                className="hidden" 
+                onChange={handleFileSelect}
+            />
+            
+            {!selectedFile ? (
+                <label 
+                    htmlFor="wizard-file-upload"
+                    className="border-2 border-dashed border-slate-300 dark:border-navy-600 rounded-2xl p-10 flex flex-col items-center justify-center text-center hover:bg-slate-50 dark:hover:bg-navy-900/50 transition-colors cursor-pointer group"
+                >
+                    <div className="w-16 h-16 bg-slate-100 dark:bg-navy-900 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <UploadCloud className="text-blue-600 dark:text-cobalt-500" size={32} />
+                    </div>
+                    <h4 className="text-lg font-medium text-slate-900 dark:text-white mb-1">Click to upload or drag and drop</h4>
+                    <p className="text-sm text-slate-500">CSV, PDF, or JSON (Max 50MB)</p>
+                </label>
+            ) : (
+                <div className="bg-blue-50 dark:bg-navy-900 border border-blue-200 dark:border-navy-700 rounded-2xl p-6 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl">
+                            <FileText size={24} />
+                        </div>
+                        <div>
+                            <p className="font-medium text-slate-900 dark:text-white">{selectedFile.name}</p>
+                            <p className="text-xs text-slate-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => setSelectedFile(null)}
+                        className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
+            )}
+
             {error && (
                 <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-2 text-red-600 dark:text-red-400 text-sm">
                   <AlertCircle size={16} />
@@ -202,7 +243,7 @@ const NewProjectWizard: React.FC<NewProjectWizardProps> = ({ user, onProjectCrea
                 </div>
                 <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Project Submitted!</h3>
                 <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6">
-                    We'll review your project <strong>{formData.title}</strong> and get back to you with a detailed proposal within 24 hours.
+                    We'll review your project <strong>{formData.title}</strong> and get back to you with a detailed proposal within 24 hours. A confirmation invoice and chat channel have been created.
                 </p>
             </div>
         )}

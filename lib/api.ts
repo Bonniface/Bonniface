@@ -184,6 +184,62 @@ export const uploadProjectFile = async (
   return mapFile(dbData);
 };
 
+// --- HELPER FOR ADMIN CHAT ---
+const getAdminId = async (): Promise<string | null> => {
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('role', 'ADMIN')
+        .limit(1)
+        .single();
+    
+    if (error || !data) return null;
+    return data.id;
+};
+
+const ensureChatRoom = async (userId: string, adminId: string): Promise<string | null> => {
+    // 1. Check if room exists for these two users
+    // Complex query alternative: fetch user's rooms, then check if admin is in them.
+    
+    // Get all rooms current user is in
+    const { data: myMemberships } = await supabase
+        .from('room_members')
+        .select('room_id')
+        .eq('user_id', userId);
+    
+    if (myMemberships && myMemberships.length > 0) {
+        const myRoomIds = myMemberships.map(m => m.room_id);
+        
+        // Check if admin is in any of these rooms
+        const { data: commonRoom } = await supabase
+            .from('room_members')
+            .select('room_id')
+            .eq('user_id', adminId)
+            .in('room_id', myRoomIds)
+            .limit(1)
+            .single();
+            
+        if (commonRoom) return commonRoom.room_id;
+    }
+    
+    // 2. Create new room if not exists
+    const { data: newRoom, error: roomError } = await supabase
+        .from('chat_rooms')
+        .insert([{ name: 'Support' }])
+        .select()
+        .single();
+        
+    if (roomError || !newRoom) return null;
+    
+    // 3. Add members
+    await supabase.from('room_members').insert([
+        { room_id: newRoom.id, user_id: userId },
+        { room_id: newRoom.id, user_id: adminId }
+    ]);
+    
+    return newRoom.id;
+};
+
 // --- PROJECT MUTATIONS ---
 
 export const createProject = async (
@@ -192,7 +248,8 @@ export const createProject = async (
   description: string, 
   serviceType: ServiceType, 
   userId: string,
-  clientName: string
+  clientName: string,
+  initialFile?: File
 ): Promise<Project | null> => {
   const projectId = `PRJ-${Date.now().toString().slice(-6)}`;
   
@@ -230,6 +287,34 @@ export const createProject = async (
       status: 'Pending'
     }]);
 
+  // 3. Upload File if present
+  let uploadedFile = null;
+  if (initialFile) {
+     uploadedFile = await uploadProjectFile(initialFile, phaseId, clientName);
+  }
+
+  // 4. Create Invoice (20% Deposit)
+  const depositAmount = budget * 0.2;
+  const invoiceId = `INV-${Date.now().toString().slice(-6)}`;
+  await supabase.from('invoices').insert([{
+     id: invoiceId,
+     project_id: projectId,
+     client_name: clientName,
+     amount: depositAmount,
+     date: new Date().toISOString().split('T')[0],
+     status: 'Pending'
+  }]);
+
+  // 5. Ensure Chat & Notify Admin
+  const adminId = await getAdminId();
+  if (adminId) {
+     const roomId = await ensureChatRoom(userId, adminId);
+     if (roomId) {
+        // Send automatic system message
+        await sendMessage(roomId, userId, `I've just submitted a new project: "${title}". Looking forward to discussing the requirements.`);
+     }
+  }
+
   // Return mapped project
   return {
     ...mapProject(projectData),
@@ -238,7 +323,7 @@ export const createProject = async (
       title: 'Discovery & Requirements',
       description: description || 'Initial project scope and requirements gathering.',
       status: 'Pending',
-      files: []
+      files: uploadedFile ? [uploadedFile] : []
     }]
   };
 };
@@ -281,6 +366,13 @@ export const deleteProjectPhase = async (phaseId: string) => {
 // --- CHAT FUNCTIONS ---
 
 export const fetchUserChats = async (userId: string): Promise<ChatSession[]> => {
+  // Ensure basic support chat exists for user if they are a client
+  // We do this check here lazily
+  const adminId = await getAdminId();
+  if (adminId && userId !== adminId) {
+     await ensureChatRoom(userId, adminId);
+  }
+
   // 1. Get Rooms I am a member of
   const { data: myRooms, error: roomError } = await supabase
     .from('room_members')
@@ -339,9 +431,9 @@ export const fetchUserChats = async (userId: string): Promise<ChatSession[]> => 
      return {
         id: room.id,
         participantId: otherUserId,
-        participantName: profile?.full_name || 'Unknown User',
-        participantAvatar: profile?.avatar_url || 'https://picsum.photos/seed/unknown/200/200',
-        lastMessage: lastMsg?.content || 'No messages yet',
+        participantName: profile?.full_name || 'Support Agent',
+        participantAvatar: profile?.avatar_url || 'https://picsum.photos/seed/admin/200/200',
+        lastMessage: lastMsg?.content || 'Start a conversation...',
         unreadCount: 0,
         timestamp: lastMsg?.timestamp || '',
         messages: messages

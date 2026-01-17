@@ -60,24 +60,30 @@ const PhaseItem = ({
             dragControls={dragControls}
             className="relative flex gap-6"
             style={{ listStyle: 'none' }} 
+            whileDrag={{ 
+                scale: 1.02,
+                zIndex: 50,
+                boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)"
+            }}
         >
             <div className="relative z-10 flex flex-col items-center gap-2">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center bg-white dark:bg-navy-900">
+                <div className={`flex h-6 w-6 shrink-0 items-center justify-center bg-white dark:bg-navy-900 transition-all duration-200 ${isEditing ? 'scale-90 opacity-70' : ''}`}>
                     {getPhaseIcon(phase.status, isDependencyLocked)}
                 </div>
                 {isEditing && (
                     <div 
                         onPointerDown={(e) => dragControls.start(e)}
-                        className="p-1 cursor-grab text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 touch-none active:cursor-grabbing"
+                        className="p-2 mt-1 cursor-grab text-slate-400 hover:text-blue-600 dark:text-slate-500 dark:hover:text-blue-400 bg-slate-50 dark:bg-navy-800 rounded-lg border border-slate-200 dark:border-navy-700 hover:border-blue-300 dark:hover:border-blue-600 transition-all touch-none active:cursor-grabbing shadow-sm active:scale-95"
+                        title="Drag to reorder phase"
                     >
-                        <GripVertical size={16} />
+                        <GripVertical size={18} />
                     </div>
                 )}
             </div>
             
-            <div className={`flex-1 rounded-xl p-5 border transition-all ${
+            <div className={`flex-1 rounded-xl p-5 border transition-all duration-200 ${
                 isEditing 
-                ? 'bg-white dark:bg-navy-900 border-blue-300 dark:border-blue-700 shadow-md' 
+                ? 'bg-white dark:bg-navy-900 border-dashed border-blue-300 dark:border-blue-700/50 shadow-md ring-1 ring-blue-50 dark:ring-blue-900/20' 
                 : isDependencyLocked
                     ? 'bg-slate-50/50 dark:bg-navy-950/30 border-slate-100 dark:border-navy-800 opacity-70 grayscale-[0.5]'
                     : isCompletedLocked
