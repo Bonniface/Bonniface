@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, Send, Bot, User, Sparkles, Loader2, AlertTriangle } from 'lucide-react';
 import { GoogleGenAI, Type, FunctionDeclaration, Tool } from "@google/genai";
 import { Project, User as UserType } from '../types';
+import * as api from '../lib/api';
 
 interface AIAssistantProps {
   isOpen: boolean;
@@ -72,7 +73,16 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, projects, us
         },
       };
 
-      const tools: Tool[] = [{ functionDeclarations: [listProjectsTool] }];
+      const listInvoicesTool: FunctionDeclaration = {
+        name: 'listInvoices',
+        description: 'List all invoices including their payment status, amount, and due dates.',
+        parameters: {
+            type: Type.OBJECT,
+            properties: {},
+        }
+      };
+
+      const tools: Tool[] = [{ functionDeclarations: [listProjectsTool, listInvoicesTool] }];
 
       chatSessionRef.current = ai.chats.create({
         model: 'gemini-3-pro-preview',
@@ -80,7 +90,11 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, projects, us
           systemInstruction: `You are the Bonniface Assistant for the Bonniface Portal. 
           Your goal is to help clients manage their AI & Data Science projects.
           You are professional, concise, and helpful.
+          
+          You have access to tools to fetch their projects and invoices.
           Always use the 'listProjects' tool if the user asks about "my projects", "status", "budget", or "progress".
+          Always use the 'listInvoices' tool if the user asks about "billing", "payments", "invoices" or "costs".
+          
           Format currency in USD.
           Current User: ${user.name} (${user.role}).`,
           tools: tools,
@@ -116,9 +130,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, projects, us
       // Handle Function Calls (Agent Loop)
       // We loop in case the model wants to call multiple tools or the same tool multiple times
       while (result.functionCalls && result.functionCalls.length > 0) {
-        const responseParts = result.functionCalls.map(call => {
+        const responseParts = await Promise.all(result.functionCalls.map(async (call) => {
           if (call.name === 'listProjects') {
-            // Execute the tool logic
             return {
               functionResponse: {
                 name: call.name,
@@ -133,6 +146,23 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, projects, us
                 id: call.id
               }
             };
+          } else if (call.name === 'listInvoices') {
+             // Fetch invoices live to ensure up-to-date data for the AI
+             const invoices = await api.fetchInvoices(user.role === 'ADMIN' ? undefined : user.name, user.role === 'ADMIN');
+             return {
+                 functionResponse: {
+                     name: call.name,
+                     response: {
+                         result: invoices.map(i => ({
+                             id: i.id,
+                             amount: i.amount,
+                             status: i.status,
+                             date: i.date
+                         }))
+                     },
+                     id: call.id
+                 }
+             }
           }
           return { 
             functionResponse: {
@@ -141,7 +171,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, projects, us
               id: call.id
             }
           };
-        });
+        }));
 
         // Send tool results back to the model
         result = await chatSessionRef.current.sendMessage({

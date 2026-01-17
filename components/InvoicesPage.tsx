@@ -9,12 +9,12 @@ interface InvoicesPageProps {
   invoices: Invoice[];
   paymentMethods?: PaymentMethod[];
   onNavigate?: (view: ViewState) => void;
-  onInvoicePaid?: (invoiceId: string) => void;
+  onInvoicePaid?: (invoiceId: string, projectId: string) => void;
 }
 
-const PayInvoiceButton = ({ invoice, user, onPaid }: { invoice: Invoice, user: User, onPaid: (id: string) => void }) => {
-    // Get key from environment (vite uses import.meta.env)
-    const publicKey = (import.meta as any).env.VITE_PAYSTACK_PUBLIC_KEY || '';
+const PayInvoiceButton = ({ invoice, user, onPaid }: { invoice: Invoice, user: User, onPaid: (id: string, projectId: string) => void }) => {
+    // Get key from environment
+    const publicKey = (import.meta as any).env?.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_64a5e8550ef53bf8089e4c109e49def1341b2235'; // Fallback for demo
     
     // Config
     const config = {
@@ -22,7 +22,7 @@ const PayInvoiceButton = ({ invoice, user, onPaid }: { invoice: Invoice, user: U
         email: user.email,
         amount: invoice.amount * 100, // Amount in kobo/cents
         publicKey: publicKey,
-        currency: 'USD', // Adjust if your Paystack is NGN only
+        currency: 'USD',
         metadata: {
             custom_fields: [
                 {
@@ -38,10 +38,12 @@ const PayInvoiceButton = ({ invoice, user, onPaid }: { invoice: Invoice, user: U
 
     const onSuccess = async (reference: any) => {
         console.log("Payment successful:", reference);
-        // Update database
-        const success = await api.updateInvoiceStatus(invoice.id, 'Paid');
+        // Update database - marks as Paid AND moves Project to In Progress if it was pending
+        const success = await api.markInvoiceAsPaid(invoice.id, invoice.projectId);
+        
         if (success) {
-            onPaid(invoice.id);
+            onPaid(invoice.id, invoice.projectId);
+            alert("Payment Successful! Project status updated.");
         } else {
             alert('Payment recorded but failed to update invoice status. Please contact support.');
         }

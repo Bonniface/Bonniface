@@ -11,14 +11,13 @@ import AddPaymentMethod from './components/AddPaymentMethod';
 import AIAssistant from './components/AIAssistant';
 import LandingPage from './components/LandingPage';
 import { MyWorkPage } from './components/MyWorkPage';
-import { CLIENT_USER, ADMIN_CHATS, CLIENT_CHATS, MOCK_PROJECTS, MOCK_INVOICES, MOCK_PAYMENT_METHODS, ADMIN_USER } from './constants';
-import { User, UserRole, ViewState, Project, PaymentMethod, Invoice, ChatSession } from './types';
+import { User, UserRole, ViewState, Project, PaymentMethod, Invoice, ChatSession, ProjectStatus } from './types';
 import { Menu } from 'lucide-react';
 import { supabase } from './lib/supabaseClient';
 import * as api from './lib/api';
 
 const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<User>(CLIENT_USER); 
+  const [currentUser, setCurrentUser] = useState<User | null>(null); 
   const [currentView, setCurrentView] = useState<ViewState>('OVERVIEW');
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -46,21 +45,10 @@ const App: React.FC = () => {
   const loadData = async (user: User) => {
     setIsLoadingData(true);
     
-    // BACKDOOR: Check if this is the mock admin user ID
-    if (user.id === ADMIN_USER.id) {
-        // Load mock data for demo purposes
-        setProjects(MOCK_PROJECTS);
-        setInvoices(MOCK_INVOICES);
-        setPaymentMethods(MOCK_PAYMENT_METHODS);
-        setChatSessions(ADMIN_CHATS);
-        setIsLoadingData(false);
-        return;
-    }
-
     try {
         const isAdmin = user.role === UserRole.ADMIN;
         
-        // Parallel fetching
+        // Parallel fetching from Database
         const [fetchedProjects, fetchedInvoices, fetchedPaymentMethods, fetchedChats] = await Promise.all([
             api.fetchProjects(user.id, isAdmin),
             api.fetchInvoices(user.name, isAdmin),
@@ -80,21 +68,42 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogin = (backdoorUser?: User) => {
-    // If backdoor user is provided (from AuthModal hidden button or Secret Key), bypass Supabase listener
-    if (backdoorUser) {
-        setCurrentUser(backdoorUser);
-        setNavMode('APP');
-        loadData(backdoorUser);
-    }
-    // Otherwise, normal auth flow handled by the onAuthStateChange listener
-  };
+  // Real-Time Subscriptions for Dashboard Data
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Listen for changes in projects (e.g., status updates)
+    const projectSubscription = supabase
+        .channel('public:projects')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
+            // Refresh data on any project change (Insert/Update/Delete)
+            // Ideally we'd optimize to just update state, but refresh ensures consistency
+            loadData(currentUser); 
+        })
+        .subscribe();
+    
+    // Listen for invoice changes (e.g., paid status)
+    const invoiceSubscription = supabase
+        .channel('public:invoices')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, () => {
+            loadData(currentUser);
+        })
+        .subscribe();
+
+    return () => {
+        supabase.removeChannel(projectSubscription);
+        supabase.removeChannel(invoiceSubscription);
+    };
+  }, [currentUser]);
 
   const handleAuthUser = async (session: any) => {
+    if (!session?.user) return;
+
     const email = session.user.email;
     const isBonniface = email?.includes('admin') || email?.includes('bonniface');
     
     let userRole = UserRole.CLIENT;
+    // Fallback name logic if metadata is missing
     let userName = session.user.user_metadata?.full_name || email?.split('@')[0] || 'Client';
 
     if (isBonniface) {
@@ -136,18 +145,16 @@ const App: React.FC = () => {
       if (session) {
         handleAuthUser(session);
       } else {
-        // If session is lost (logout/expiry) and we are not in Backdoor Admin mode, redirect to Landing.
-        // We check ID against ADMIN_USER to ensure the backdoor session persists even without a Supabase session.
-        if (navMode === 'APP' && currentUser.id !== ADMIN_USER.id) {
-           setNavMode('LANDING');
-        }
+        // If session is lost (logout/expiry), redirect to Landing.
+        setCurrentUser(null);
+        setNavMode('LANDING');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navMode, currentUser.id]);
+  }, []);
 
-  // Secret Backdoor Listener (Ctrl + Shift + A) - REAL EMAIL OTP VERSION
+  // Secret Backdoor Listener (Ctrl + Shift + A) - Triggers Real OTP flow
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
@@ -185,9 +192,8 @@ const App: React.FC = () => {
              if (verifyError) {
                  alert(`Access Denied: ${verifyError.message}`);
              } else if (data.session) {
-                 // 5. Success
+                 // 5. Success - The onAuthStateChange listener will handle the login transition
                  alert("Identity Verified. Welcome back, Administrator."); 
-                 handleLogin(ADMIN_USER);
              }
 
          } catch (err) {
@@ -210,7 +216,7 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     await (supabase.auth as any).signOut();
-    setCurrentUser(CLIENT_USER); // Reset to default state
+    setCurrentUser(null);
     setNavMode('LANDING');
     setIsMobileMenuOpen(false);
   };
@@ -225,33 +231,49 @@ const App: React.FC = () => {
   };
 
   const handleRefreshChats = async () => {
-      // If mock admin, do nothing or fetch from constants to reset
-      if (currentUser.id === ADMIN_USER.id) return;
-
+      if (!currentUser) return;
       const fetchedChats = await api.fetchUserChats(currentUser.id);
       if (fetchedChats) {
           setChatSessions(fetchedChats);
       }
   };
 
-  const handleInvoicePaid = (invoiceId: string) => {
+  const handleInvoicePaid = (invoiceId: string, projectId?: string) => {
+      // 1. Mark Invoice as Paid in UI
       setInvoices(prev => prev.map(inv => 
           inv.id === invoiceId ? { ...inv, status: 'Paid' } : inv
       ));
+      
+      // 2. Update Project Status in UI (Optimistic update)
+      // If payment was for a Pending project, it moves to In Progress
+      if (projectId) {
+          setProjects(prev => prev.map(p => 
+              p.id === projectId && p.status === ProjectStatus.PENDING
+                ? { ...p, status: ProjectStatus.IN_PROGRESS }
+                : p
+          ));
+          
+          // Also update selected project if it's the current one
+          if (selectedProject?.id === projectId && selectedProject.status === ProjectStatus.PENDING) {
+              setSelectedProject(prev => prev ? { ...prev, status: ProjectStatus.IN_PROGRESS } : null);
+          }
+      }
   };
 
+  // 1. Landing Mode
   if (navMode === 'LANDING') {
     return (
       <div className={isDarkMode ? 'dark' : ''}>
         <LandingPage 
-            onLogin={handleLogin} 
+            onLogin={() => { /* Handled by Supabase Listener */ }} 
             onNavigateToWork={() => setNavMode('WORK')} 
         />
+        {/* Simple Guest AI Chat */}
         <AIAssistant 
           isOpen={isAIOpen} 
           onClose={() => setIsAIOpen(false)} 
           projects={[]} 
-          user={CLIENT_USER} 
+          user={{ id: 'guest', name: 'Guest', email: '', role: UserRole.CLIENT, avatarUrl: '' }} 
         />
         {!isAIOpen && (
           <div 
@@ -266,6 +288,7 @@ const App: React.FC = () => {
     );
   }
 
+  // 2. Portfolio Mode
   if (navMode === 'WORK') {
       return (
           <div className={isDarkMode ? 'dark' : ''}>
@@ -274,11 +297,18 @@ const App: React.FC = () => {
       );
   }
 
+  // 3. App Mode (Requires User)
+  if (!currentUser) {
+      // Fallback if state hasn't updated yet but we are in APP mode
+      return <div className="min-h-screen bg-slate-50 dark:bg-navy-950 flex items-center justify-center"><Loader /></div>;
+  }
+
   const renderContent = () => {
     if (isLoadingData) {
         return (
-            <div className="flex items-center justify-center h-screen text-slate-500">
-                Loading data...
+            <div className="flex items-center justify-center h-full text-slate-500 gap-2">
+                <Loader />
+                <span>Syncing data...</span>
             </div>
         );
     }
@@ -339,7 +369,7 @@ const App: React.FC = () => {
         return <SettingsPage user={currentUser} isDarkMode={isDarkMode} toggleTheme={toggleTheme} />;
       default:
         return (
-          <div className="flex items-center justify-center h-screen text-slate-500 dark:text-slate-400">
+          <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
             Work in progress...
           </div>
         );
@@ -380,6 +410,13 @@ const App: React.FC = () => {
 
 const BotIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22v-2a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2"/><path d="m16 13 2 2"/><path d="m8 13-2 2"/><path d="m12 15 2 2"/><path d="m10 17 2 2"/></svg>
+);
+
+const Loader = () => (
+    <svg className="animate-spin h-8 w-8 text-blue-600 dark:text-cobalt-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
 );
 
 export default App;

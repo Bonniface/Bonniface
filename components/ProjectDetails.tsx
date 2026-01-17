@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Project, ProjectStatus, UserRole, ProjectPhase, ProjectFile, User } from '../types';
-import { ArrowLeft, CheckCircle2, Circle, Clock, FileText, Download, Upload, MoreVertical, Calendar, Loader2, Save, Plus, Trash2, X, Link, Lock, Unlock, Linkedin, Twitter, Mail, GripVertical } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Circle, Clock, FileText, Download, Upload, Calendar, Loader2, Save, Plus, Trash2, GripVertical } from 'lucide-react';
 import { Reorder, useDragControls } from 'framer-motion';
 import * as api from '../lib/api';
 import { Footer } from './Footer';
@@ -20,31 +20,23 @@ interface PhaseItemProps {
     isAdmin: boolean;
     onUpdate: (id: string, field: keyof ProjectPhase, value: any) => void;
     onDelete: (id: string) => void;
-    onDependencyToggle: (phaseId: string, depId: string) => void;
     onUploadClick: (id: string) => void;
 }
 
 const PhaseItem = ({ 
     phase, 
     isEditing, 
-    allPhases, 
     activePhaseId, 
     isUploading, 
     isAdmin, 
     onUpdate, 
     onDelete, 
-    onDependencyToggle, 
     onUploadClick 
 }: PhaseItemProps) => {
     const dragControls = useDragControls();
 
-    const dependencies = allPhases.filter(p => phase.dependencies?.includes(p.id)) || [];
-    const areDependenciesMet = dependencies.length === 0 || dependencies.every(d => d.status === 'Completed');
-    const isDependencyLocked = !areDependenciesMet && !isEditing;
-    const isCompletedLocked = phase.status === 'Completed' && !isEditing;
-
-    const getPhaseIcon = (status: string, isDependencyLocked: boolean) => {
-        if (isDependencyLocked) return <Lock className="text-slate-300 dark:text-slate-600" size={24} />;
+    // Simplified Logic: No dependency locking since backend doesn't support it yet
+    const getPhaseIcon = (status: string) => {
         switch (status) {
           case 'Completed': return <CheckCircle2 className="text-emerald-500" size={24} />;
           case 'In Progress': return <Clock className="text-blue-500 animate-pulse" size={24} />;
@@ -68,7 +60,7 @@ const PhaseItem = ({
         >
             <div className="relative z-10 flex flex-col items-center gap-2">
                 <div className={`flex h-6 w-6 shrink-0 items-center justify-center bg-white dark:bg-navy-900 transition-all duration-200 ${isEditing ? 'scale-90 opacity-70' : ''}`}>
-                    {getPhaseIcon(phase.status, isDependencyLocked)}
+                    {getPhaseIcon(phase.status)}
                 </div>
                 {isEditing && (
                     <div 
@@ -84,11 +76,7 @@ const PhaseItem = ({
             <div className={`flex-1 rounded-xl p-5 border transition-all duration-200 ${
                 isEditing 
                 ? 'bg-white dark:bg-navy-900 border-dashed border-blue-300 dark:border-blue-700/50 shadow-md ring-1 ring-blue-50 dark:ring-blue-900/20' 
-                : isDependencyLocked
-                    ? 'bg-slate-50/50 dark:bg-navy-950/30 border-slate-100 dark:border-navy-800 opacity-70 grayscale-[0.5]'
-                    : isCompletedLocked
-                        ? 'bg-emerald-50/20 dark:bg-emerald-900/10 border-emerald-100/50 dark:border-emerald-900/20'
-                        : 'bg-slate-50 dark:bg-navy-950/50 border-slate-100 dark:border-navy-800 hover:border-blue-200 dark:hover:border-navy-700'
+                : 'bg-slate-50 dark:bg-navy-950/50 border-slate-100 dark:border-navy-800 hover:border-blue-200 dark:hover:border-navy-700'
             }`}>
             {isEditing ? (
                 <div className="space-y-4">
@@ -133,20 +121,9 @@ const PhaseItem = ({
                 <>
                     <div className="flex flex-col sm:flex-row justify-between items-start mb-2 gap-2">
                         <div className="flex items-center gap-2">
-                            <h3 className={`font-semibold ${isDependencyLocked ? 'text-slate-500 dark:text-slate-500' : 'text-slate-900 dark:text-white'}`}>
+                            <h3 className="font-semibold text-slate-900 dark:text-white">
                                 {phase.title}
                             </h3>
-                            {isDependencyLocked && (
-                                <span className="flex items-center gap-1 text-[10px] font-bold bg-slate-200 dark:bg-navy-800 text-slate-500 px-2 py-0.5 rounded-full uppercase tracking-wide">
-                                    Locked
-                                </span>
-                            )}
-                            {isCompletedLocked && (
-                                <span className="flex items-center gap-1 text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full uppercase tracking-wide border border-emerald-200 dark:border-emerald-900/50">
-                                    <Lock size={10} />
-                                    Locked
-                                </span>
-                            )}
                         </div>
                         <span className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ${
                         phase.status === 'Completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' :
@@ -194,7 +171,7 @@ const PhaseItem = ({
             )}
 
             {/* Upload Button */}
-            {isAdmin && !isEditing && (phase.status === 'In Progress' || phase.status === 'Pending') && !isUploading && !isDependencyLocked && (
+            {isAdmin && !isEditing && (phase.status === 'In Progress' || phase.status === 'Pending') && !isUploading && (
                 <button 
                 onClick={() => onUploadClick(phase.id)}
                 className="mt-4 flex items-center gap-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
@@ -283,27 +260,6 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, currentUser, o
 
     // API Call
     await api.updateProjectPhase(phaseId, { [field]: value });
-  };
-
-  const handlePhaseDependencyToggle = (phaseId: string, dependencyId: string) => {
-      // Note: Dependencies logic assumes we add/remove local state. 
-      // Ideally, dependencies should be in DB. For now, assuming they are just meta-data or part of description in DB, 
-      // but since schema doesn't have explicit dependencies array column, we might skip API persist for dependencies 
-      // unless we add a column or store in JSON.
-      // For this implementation, we will update local state only to visualize interaction.
-      setCurrentProject(prev => {
-        const updatedPhases = prev.phases?.map(p => {
-            if (p.id === phaseId) {
-                const currentDeps = p.dependencies || [];
-                const newDeps = currentDeps.includes(dependencyId)
-                    ? currentDeps.filter(id => id !== dependencyId)
-                    : [...currentDeps, dependencyId];
-                return { ...p, dependencies: newDeps };
-            }
-            return p;
-        });
-        return { ...prev, phases: updatedPhases };
-      });
   };
 
   const handleReorderPhases = (newPhases: ProjectPhase[]) => {
@@ -445,7 +401,6 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, currentUser, o
                                 isAdmin={isAdmin}
                                 onUpdate={handlePhaseUpdate}
                                 onDelete={handleDeletePhase}
-                                onDependencyToggle={handlePhaseDependencyToggle}
                                 onUploadClick={handleUploadClick}
                             />
                         ))

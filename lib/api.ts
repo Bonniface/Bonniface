@@ -90,12 +90,31 @@ export const fetchInvoices = async (clientName?: string, isAdmin?: boolean): Pro
   return data.map(mapInvoice);
 };
 
-export const updateInvoiceStatus = async (invoiceId: string, status: string) => {
-  const { error } = await supabase
+export const markInvoiceAsPaid = async (invoiceId: string, projectId: string): Promise<boolean> => {
+  // 1. Update Invoice Status
+  const { error: invError } = await supabase
     .from('invoices')
-    .update({ status })
+    .update({ status: 'Paid' })
     .eq('id', invoiceId);
-  return !error;
+    
+  if (invError) {
+    console.error("Error updating invoice:", invError);
+    return false;
+  }
+  
+  // 2. Update Project Status (If currently Pending, move to In Progress)
+  // We perform a conditional update.
+  const { error: prjError } = await supabase
+    .from('projects')
+    .update({ status: ProjectStatus.IN_PROGRESS })
+    .eq('id', projectId)
+    .eq('status', ProjectStatus.PENDING);
+    
+  if (prjError) {
+      console.warn("Project status update failed (might not be pending):", prjError);
+  }
+    
+  return true;
 };
 
 export const fetchPaymentMethods = async (userId: string): Promise<PaymentMethod[]> => {
@@ -199,7 +218,6 @@ const getAdminId = async (): Promise<string | null> => {
 
 const ensureChatRoom = async (userId: string, adminId: string): Promise<string | null> => {
     // 1. Check if room exists for these two users
-    // Complex query alternative: fetch user's rooms, then check if admin is in them.
     
     // Get all rooms current user is in
     const { data: myMemberships } = await supabase
@@ -361,6 +379,17 @@ export const deleteProjectPhase = async (phaseId: string) => {
     .delete()
     .eq('id', phaseId);
   return !error;
+};
+
+// --- USER & SETTINGS ---
+
+export const updateUserProfile = async (userId: string, updates: { full_name?: string }) => {
+    const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', userId);
+    
+    return !error;
 };
 
 // --- CHAT FUNCTIONS ---

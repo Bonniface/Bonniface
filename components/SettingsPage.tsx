@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
-import { User as UserIcon, Bell, Shield, Palette, Save } from 'lucide-react';
+import { User as UserIcon, Bell, Shield, Palette, Save, Loader2, Check } from 'lucide-react';
+import * as api from '../lib/api';
 
 interface SettingsPageProps {
   user: User;
@@ -11,6 +12,11 @@ interface SettingsPageProps {
 const SettingsPage: React.FC<SettingsPageProps> = ({ user, isDarkMode, toggleTheme }) => {
   const [activeTab, setActiveTab] = useState('profile');
   const [currency, setCurrency] = useState('USD');
+  
+  // Profile Form State
+  const [fullName, setFullName] = useState(user.name);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
     const savedCurrency = localStorage.getItem('user_currency');
@@ -19,14 +25,26 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, isDarkMode, toggleThe
     }
   }, []);
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
+    setIsSaving(true);
+    setSaveSuccess(false);
+
+    // 1. Save local preferences
     localStorage.setItem('user_currency', currency);
-    // In a real app, this would show a toast notification
-    const btn = document.getElementById('save-btn');
-    if (btn) {
-       const originalText = btn.innerText;
-       btn.innerText = 'Saved!';
-       setTimeout(() => { btn.innerText = originalText }, 2000);
+
+    // 2. Save to Database
+    const success = await api.updateUserProfile(user.id, {
+        full_name: fullName
+    });
+
+    setIsSaving(false);
+    
+    if (success) {
+       setSaveSuccess(true);
+       // Refresh page state slightly or wait for global auth listener
+       setTimeout(() => setSaveSuccess(false), 3000);
+    } else {
+        alert("Failed to update profile. Please try again.");
     }
   };
 
@@ -74,11 +92,21 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, isDarkMode, toggleThe
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Full Name</label>
-                  <input type="text" defaultValue={user.name} className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-lg p-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                  <input 
+                    type="text" 
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-lg p-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" 
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Email Address</label>
-                  <input type="email" defaultValue={user.email} className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-lg p-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                  <input 
+                    type="email" 
+                    value={user.email} 
+                    disabled
+                    className="w-full bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-lg p-2.5 text-slate-500 dark:text-slate-400 cursor-not-allowed" 
+                  />
                 </div>
                 <div>
                    <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Display Currency</label>
@@ -103,10 +131,21 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, isDarkMode, toggleThe
                 <button 
                   id="save-btn"
                   onClick={handleSaveProfile}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-medium transition-colors"
+                  disabled={isSaving}
+                  className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium transition-colors ${
+                      saveSuccess 
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
                 >
-                  <Save size={18} />
-                  <span>Save Changes</span>
+                  {isSaving ? (
+                      <Loader2 size={18} className="animate-spin" />
+                  ) : saveSuccess ? (
+                      <Check size={18} />
+                  ) : (
+                      <Save size={18} />
+                  )}
+                  <span>{isSaving ? 'Saving...' : saveSuccess ? 'Saved!' : 'Save Changes'}</span>
                 </button>
               </div>
             </div>
