@@ -1,15 +1,74 @@
 import React from 'react';
 import { Invoice, User, UserRole, ViewState, PaymentMethod } from '../types';
-import { Download, Search, Filter, CreditCard, Plus, Trash2 } from 'lucide-react';
+import { Download, Search, Filter, CreditCard, Plus, Trash2, Check, ExternalLink } from 'lucide-react';
+import { usePaystackPayment } from 'react-paystack';
+import * as api from '../lib/api';
 
 interface InvoicesPageProps {
   user: User;
   invoices: Invoice[];
   paymentMethods?: PaymentMethod[];
   onNavigate?: (view: ViewState) => void;
+  onInvoicePaid?: (invoiceId: string) => void;
 }
 
-const InvoicesPage: React.FC<InvoicesPageProps> = ({ user, invoices, paymentMethods = [], onNavigate }) => {
+const PayInvoiceButton = ({ invoice, user, onPaid }: { invoice: Invoice, user: User, onPaid: (id: string) => void }) => {
+    // Get key from environment (vite uses import.meta.env)
+    const publicKey = (import.meta as any).env.VITE_PAYSTACK_PUBLIC_KEY || '';
+    
+    // Config
+    const config = {
+        reference: (new Date()).getTime().toString(),
+        email: user.email,
+        amount: invoice.amount * 100, // Amount in kobo/cents
+        publicKey: publicKey,
+        currency: 'USD', // Adjust if your Paystack is NGN only
+        metadata: {
+            custom_fields: [
+                {
+                    display_name: "Invoice ID",
+                    variable_name: "invoice_id",
+                    value: invoice.id
+                }
+            ]
+        }
+    };
+
+    const initializePayment = usePaystackPayment(config);
+
+    const onSuccess = async (reference: any) => {
+        console.log("Payment successful:", reference);
+        // Update database
+        const success = await api.updateInvoiceStatus(invoice.id, 'Paid');
+        if (success) {
+            onPaid(invoice.id);
+        } else {
+            alert('Payment recorded but failed to update invoice status. Please contact support.');
+        }
+    };
+
+    const onClose = () => {
+        console.log('Payment dialog closed');
+    };
+
+    return (
+        <button 
+            onClick={() => {
+                if (!publicKey) {
+                    alert("Paystack Public Key missing in configuration.");
+                    return;
+                }
+                initializePayment(onSuccess, onClose);
+            }}
+            className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm shadow-blue-600/20"
+        >
+            Pay Now
+            <ExternalLink size={12} />
+        </button>
+    );
+};
+
+const InvoicesPage: React.FC<InvoicesPageProps> = ({ user, invoices, paymentMethods = [], onNavigate, onInvoicePaid }) => {
   const isAdmin = user.role === UserRole.ADMIN;
   
   const filteredInvoices = isAdmin 
@@ -128,9 +187,16 @@ const InvoicesPage: React.FC<InvoicesPageProps> = ({ user, invoices, paymentMeth
                     </span>
                   </td>
                   <td className="p-4 text-right">
-                    <button className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-cobalt-400 transition-colors rounded-lg hover:bg-blue-50 dark:hover:bg-navy-800" title="Download PDF">
-                      <Download size={18} />
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                        {/* Only Show Pay Button for Pending/Overdue Invoices and NON-ADMINs */}
+                        {!isAdmin && (inv.status === 'Pending' || inv.status === 'Overdue') && onInvoicePaid ? (
+                            <PayInvoiceButton invoice={inv} user={user} onPaid={onInvoicePaid} />
+                        ) : (
+                            <button className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-cobalt-400 transition-colors rounded-lg hover:bg-blue-50 dark:hover:bg-navy-800" title="Download PDF">
+                                <Download size={18} />
+                            </button>
+                        )}
+                    </div>
                   </td>
                 </tr>
               ))}

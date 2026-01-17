@@ -93,7 +93,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin }
           
           <div className="p-8">
             <div className="text-center mb-8">
-                <div className="w-16 h-16 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl mx-auto flex items-center justify-center mb-6 shadow-lg shadow-blue-600/20">
+                <img 
+                  src="/assets/boni_avatar.jpg" 
+                  alt="Bonniface Logo" 
+                  className="w-16 h-16 rounded-xl mx-auto mb-6 object-cover shadow-lg shadow-blue-600/20"
+                  onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      e.currentTarget.nextElementSibling?.classList.add('flex');
+                  }}
+                />
+                <div className="hidden w-16 h-16 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl mx-auto items-center justify-center mb-6 shadow-lg shadow-blue-600/20">
                     <span className="text-2xl font-bold text-white">B</span>
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-2">

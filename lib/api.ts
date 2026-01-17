@@ -90,6 +90,14 @@ export const fetchInvoices = async (clientName?: string, isAdmin?: boolean): Pro
   return data.map(mapInvoice);
 };
 
+export const updateInvoiceStatus = async (invoiceId: string, status: string) => {
+  const { error } = await supabase
+    .from('invoices')
+    .update({ status })
+    .eq('id', invoiceId);
+  return !error;
+};
+
 export const fetchPaymentMethods = async (userId: string): Promise<PaymentMethod[]> => {
   const { data, error } = await supabase
     .from('payment_methods')

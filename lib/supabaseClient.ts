@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 // Safely retrieve environment variables handling potentially missing import.meta.env
