@@ -74,8 +74,26 @@ const App: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
          e.preventDefault();
-         console.log("Backdoor triggered: Logging in as Admin");
-         handleLogin(ADMIN_USER);
+         
+         // 1. Generate a random 6-digit key
+         const secretKey = Math.floor(100000 + Math.random() * 900000).toString();
+         
+         // 2. Log to console for the developer (Simulating email delivery)
+         console.log(`%c[ADMIN SECURITY] Verification Code for kalongboniface97@gmail.com: ${secretKey}`, "color: #00ff00; font-size: 16px; font-weight: bold; background: #000; padding: 4px;");
+
+         // 3. Prompt user for the key
+         const input = window.prompt(
+             `SECURITY ALERT: ADMIN ACCESS REQUESTED\n\nA secret verification key has been sent to:\nkalongboniface97@gmail.com\n\nPlease enter the 6-digit key to confirm your identity.\n(For Demo: Check your Browser Console F12 if email integration is offline)`
+         );
+
+         // 4. Validate
+         if (input === secretKey) {
+             alert("Identity Verified. Welcome back, Administrator."); 
+             handleLogin(ADMIN_USER);
+         } else if (input !== null) {
+             // Only show error if they didn't hit Cancel
+             alert("Access Denied: Invalid Verification Key.");
+         }
       }
     };
 
