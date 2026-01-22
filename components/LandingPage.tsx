@@ -430,7 +430,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
                                 <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center text-green-400 shrink-0">
                                     <MessageSquare size={20} />
                                 </div>
-                                <span className="text-slate-300 font-medium">Direct Access & Live Collaboration</span>
+                                <span className="text-slate-300 font-medium">Direct Access for Academic & Coding</span>
                             </div>
                             {/* Tools Grid */}
                             <div className="pl-14 flex flex-wrap gap-2 sm:gap-3 opacity-90">
@@ -440,14 +440,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
                                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-300 text-xs font-medium" title="WhatsApp">
                                     <BrandLogo name="whatsapp" className="w-3.5 h-3.5" /> WhatsApp
                                 </div>
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium" title="Overleaf">
+                                    <BrandLogo name="overleaf" className="w-3.5 h-3.5" /> Overleaf
+                                </div>
                                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-medium" title="Slack">
                                     <BrandLogo name="slack" className="w-3.5 h-3.5" /> Slack
                                 </div>
                                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium" title="Discord">
                                     <BrandLogo name="discord" className="w-3.5 h-3.5" /> Discord
-                                </div>
-                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium" title="Overleaf">
-                                    <BrandLogo name="overleaf" className="w-3.5 h-3.5" /> Overleaf
                                 </div>
                                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-500/10 border border-slate-500/20 text-slate-300 text-xs font-medium" title="GitHub">
                                     <Github size={14} /> GitHub
