@@ -127,8 +127,13 @@ const App: React.FC = () => {
     // 3. ENFORCE ADMIN ROLE: If email is whitelisted but DB/Profile says CLIENT (e.g. first OTP login), correct it.
     if (isAdminEmail && dbUser.role !== UserRole.ADMIN) {
         dbUser.role = UserRole.ADMIN;
-        // Persist the role upgrade to the database
-        api.updateUserProfile(dbUser.id, { role: 'ADMIN' }).catch(console.error);
+        // Persist the role upgrade to the database. 
+        // CRITICAL: We await this so RLS policies on 'projects' table see the new ADMIN role immediately.
+        try {
+            await api.updateUserProfile(dbUser.id, { role: 'ADMIN' });
+        } catch (e) {
+            console.error("Failed to upgrade admin role", e);
+        }
     }
 
     setCurrentUser(dbUser);
