@@ -99,14 +99,21 @@ const App: React.FC = () => {
   const handleAuthUser = async (session: any) => {
     if (!session?.user) return;
 
+    const { email, id } = session.user;
+
+    // Check if this is an Admin based on email whitelist
+    const isAdminEmail = email && (
+        email.toLowerCase().includes('admin') || 
+        email.toLowerCase().includes('bonniface') || 
+        email.toLowerCase() === 'kalongboniface97@gmail.com'
+    );
+
     // 1. Fetch real user profile from Database
-    let dbUser = await api.fetchUserProfile(session.user.id);
+    let dbUser = await api.fetchUserProfile(id);
     
     // 2. Fallback if profile not ready (race condition with DB trigger on signup)
     if (!dbUser) {
-        const { email, id } = session.user;
         const meta = session.user.user_metadata || {};
-        const isAdminEmail = email?.includes('admin') || email?.includes('bonniface');
         
         dbUser = {
             id,
@@ -115,6 +122,13 @@ const App: React.FC = () => {
             role: isAdminEmail ? UserRole.ADMIN : UserRole.CLIENT, // Temporary fallback role
             avatarUrl: meta.avatar_url || (isAdminEmail ? '/assets/boni_avatar.jpg' : `https://picsum.photos/seed/${id}/200/200`)
         };
+    }
+
+    // 3. ENFORCE ADMIN ROLE: If email is whitelisted but DB/Profile says CLIENT (e.g. first OTP login), correct it.
+    if (isAdminEmail && dbUser.role !== UserRole.ADMIN) {
+        dbUser.role = UserRole.ADMIN;
+        // Persist the role upgrade to the database
+        api.updateUserProfile(dbUser.id, { role: 'ADMIN' }).catch(console.error);
     }
 
     setCurrentUser(dbUser);

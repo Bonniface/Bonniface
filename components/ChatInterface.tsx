@@ -20,6 +20,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const onRefreshRef = useRef(onRefresh);
+
+  // Update ref when prop changes to avoid stale closures in listeners
+  useEffect(() => {
+    onRefreshRef.current = onRefresh;
+  }, [onRefresh]);
 
   const activeSession = sessions.find(s => s.id === activeSessionId);
 
@@ -60,14 +66,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
      if (activeSessionId) {
          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
      }
-  }, [activeSession, activeSessionId, attachedFile]); // Also scroll when file attached to see preview
+  }, [activeSession, activeSessionId, attachedFile]); // Also scroll when file attached
 
   // Mark as Read when opening session
   useEffect(() => {
       if (activeSessionId) {
           api.markRoomAsRead(activeSessionId, currentUser.id).then(() => {
               // Trigger refresh to update unread counts in sidebar
-              if (onRefresh) onRefresh();
+              if (onRefreshRef.current) onRefreshRef.current();
           });
       }
   }, [activeSessionId, currentUser.id]);
@@ -81,24 +87,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
             event: '*', // Listen to INSERT and UPDATE (for is_read changes)
             schema: 'public', 
             table: 'messages',
-        }, (payload) => {
+        }, async (payload) => {
             // Check if we need to mark as read immediately (if looking at active session)
             if (payload.eventType === 'INSERT') {
                 const newMsg = payload.new as any;
+                // If message is from the other person AND we are currently looking at this room
                 if (newMsg.user_id !== currentUser.id && newMsg.room_id === activeSessionId) {
-                     api.markRoomAsRead(activeSessionId, currentUser.id);
+                     await api.markRoomAsRead(activeSessionId, currentUser.id);
                 }
             }
 
             // Always trigger refresh to update counts/list for any relevant message change
-            if (onRefresh) onRefresh();
+            if (onRefreshRef.current) onRefreshRef.current();
         })
         .subscribe();
 
       return () => {
           supabase.removeChannel(channel);
       };
-  }, [activeSessionId, currentUser.id, onRefresh]);
+  }, [activeSessionId, currentUser.id]);
 
   const handleSessionClick = (id: string) => {
     setActiveSessionId(id);
@@ -124,7 +131,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
           setNewMessage('');
           setAttachedFile(null);
           if (fileInputRef.current) fileInputRef.current.value = '';
-          if (onRefresh) onRefresh();
+          if (onRefreshRef.current) onRefreshRef.current();
       } catch (error) {
           console.error('Failed to send message:', error);
           alert('Failed to send message. Please try again.');
@@ -175,7 +182,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
               className={`p-4 border-b border-slate-50 dark:border-navy-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-navy-800/50 transition-all duration-200 ${
                 activeSessionId === session.id 
                   ? 'bg-blue-50/80 dark:bg-navy-800 border-l-4 border-l-blue-600 dark:border-l-cobalt-500 shadow-inner' 
-                  : 'border-l-4 border-l-transparent'
+                  : isUnread 
+                      ? 'bg-slate-50 dark:bg-navy-800/30 border-l-4 border-l-transparent'
+                      : 'border-l-4 border-l-transparent'
               }`}
             >
               <div className="flex gap-4 items-center">
@@ -195,18 +204,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
                             {session.participantName}
                         </h3>
                         {session.unreadCount > 0 && (
-                            <span className="flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold px-1.5 h-4 rounded-full min-w-[1.2rem] shadow-sm shadow-blue-500/20">
-                                {session.unreadCount}
+                            <span className="flex items-center justify-center bg-red-500 text-white text-[10px] font-bold px-1.5 h-4 rounded-full min-w-[1.2rem] shadow-sm shadow-red-500/20 animate-in zoom-in duration-300">
+                                {session.unreadCount > 99 ? '99+' : session.unreadCount}
                             </span>
                         )}
                     </div>
-                    <span className={`text-xs whitespace-nowrap ${isUnread ? 'text-blue-600 dark:text-blue-400 font-semibold' : 'text-slate-400 dark:text-slate-500'}`}>
+                    <span className={`text-xs whitespace-nowrap ${isUnread ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-slate-400 dark:text-slate-500'}`}>
                         {formatRelativeTime(session.lastMessageDate) || session.timestamp}
                     </span>
                   </div>
                   
                   <div className="flex justify-between items-center">
-                      <p className={`text-sm truncate flex-1 ${isUnread ? 'text-slate-800 dark:text-slate-100 font-medium' : 'text-slate-500 dark:text-slate-400'}`}>
+                      <p className={`text-sm truncate flex-1 ${isUnread ? 'text-slate-900 dark:text-white font-semibold' : 'text-slate-500 dark:text-slate-400'}`}>
                         {isMe && <span className="text-slate-400 dark:text-slate-500 mr-1">You:</span>}
                         {session.lastMessage}
                       </p>

@@ -375,7 +375,7 @@ export const deleteProjectPhase = async (phaseId: string) => {
   return !error;
 };
 
-export const updateUserProfile = async (userId: string, updates: { full_name?: string }) => {
+export const updateUserProfile = async (userId: string, updates: { full_name?: string; role?: string }) => {
     const { error } = await supabase
         .from('profiles')
         .update(updates)
