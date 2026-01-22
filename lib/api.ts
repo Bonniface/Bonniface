@@ -384,6 +384,39 @@ export const updateUserProfile = async (userId: string, updates: { full_name?: s
     return !error;
 };
 
+// --- CHAT FUNCTIONS ---
+
+// Helper to upload attachment
+export const uploadChatAttachment = async (file: File, roomId: string): Promise<string | null> => {
+    const fileName = `chat/${roomId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    
+    // We use the same 'project-files' bucket for simplicity as defined in schema
+    const { error: uploadError } = await supabase.storage
+        .from('project-files')
+        .upload(fileName, file);
+
+    if (uploadError) {
+        console.error("Chat upload failed", uploadError);
+        return null;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+        .from('project-files')
+        .getPublicUrl(fileName);
+        
+    return publicUrl;
+};
+
+export const markRoomAsRead = async (roomId: string, userId: string) => {
+    // Mark all messages in this room NOT sent by current user as read
+    await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('room_id', roomId)
+        .neq('user_id', userId) // Messages I received
+        .eq('is_read', false);
+};
+
 export const fetchUserChats = async (userId: string): Promise<ChatSession[]> => {
   const adminId = await getAdminId();
   if (adminId && userId !== adminId) {
@@ -403,9 +436,10 @@ export const fetchUserChats = async (userId: string): Promise<ChatSession[]> => 
     .select(`
       id,
       name,
-      messages (id, user_id, content, created_at)
+      messages (id, user_id, content, created_at, is_read, file_url, message_type)
     `)
-    .in('id', roomIds);
+    .in('id', roomIds)
+    .order('created_at', { ascending: true, foreignTable: 'messages' }); // Order messages
   
   if (!roomsData) return [];
 
@@ -427,24 +461,35 @@ export const fetchUserChats = async (userId: string): Promise<ChatSession[]> => 
      const otherUserId = roomMemberIds.find(uid => uid !== userId) || userId; 
      const profile = profilesMap.get(otherUserId) as any;
 
-     const messages: Message[] = (room.messages || []).map((m: any) => ({
+     // Sort messages by time
+     const sortedMessages = (room.messages || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+     const messages: Message[] = sortedMessages.map((m: any) => ({
         id: m.id.toString(),
         senderId: m.user_id,
         content: m.content,
         timestamp: new Date(m.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
         _fullDate: new Date(m.created_at),
-        isRead: true
-     })).sort((a: any, b: any) => a._fullDate.getTime() - b._fullDate.getTime());
+        isRead: m.is_read,
+        attachments: m.file_url ? [{
+            name: 'Attachment', // Simple fallback name
+            type: m.message_type === 'image' ? 'img' : 'pdf',
+            url: m.file_url
+        }] : undefined
+     }));
 
      const lastMsg = messages[messages.length - 1];
+     
+     // Calculate unread count (messages not from me, and not read)
+     const unreadCount = sortedMessages.filter((m: any) => m.user_id !== userId && !m.is_read).length;
 
      return {
         id: room.id,
         participantId: otherUserId,
         participantName: profile?.full_name || 'Support Agent',
         participantAvatar: profile?.avatar_url || 'https://picsum.photos/seed/admin/200/200',
-        lastMessage: lastMsg?.content || 'Start a conversation...',
-        unreadCount: 0,
+        lastMessage: lastMsg?.content || (lastMsg?.attachments ? 'Sent a file' : 'Start a conversation...'),
+        unreadCount: unreadCount,
         timestamp: lastMsg?.timestamp || '',
         messages: messages
      };
@@ -457,13 +502,29 @@ export const fetchUserChats = async (userId: string): Promise<ChatSession[]> => 
   });
 };
 
-export const sendMessage = async (roomId: string, userId: string, content: string) => {
+export const sendMessage = async (roomId: string, userId: string, content: string, file?: File) => {
+    let fileUrl = null;
+    let messageType = 'text';
+
+    if (file) {
+        fileUrl = await uploadChatAttachment(file, roomId);
+        const ext = file.name.split('.').pop()?.toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'gif'].includes(ext || '')) {
+            messageType = 'image';
+        } else {
+            messageType = 'file';
+        }
+    }
+
     const { error } = await supabase
         .from('messages')
         .insert([{ 
             room_id: roomId, 
             user_id: userId, 
-            content,
+            content: content || (file ? 'Sent a file' : ''), // Fallback text if just file
+            message_type: messageType,
+            file_url: fileUrl,
+            is_read: false
         }]);
     
     if (error) throw error;
