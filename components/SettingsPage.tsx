@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
-import { User as UserIcon, Bell, Shield, Palette, Save, Loader2, Check } from 'lucide-react';
+import { User as UserIcon, Bell, Shield, Palette, Save, Loader2, Check, Database } from 'lucide-react';
 import * as api from '../lib/api';
 
 interface SettingsPageProps {
@@ -17,6 +17,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, isDarkMode, toggleThe
   const [fullName, setFullName] = useState(user.name);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
 
   useEffect(() => {
     const savedCurrency = localStorage.getItem('user_currency');
@@ -45,6 +46,20 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, isDarkMode, toggleThe
        setTimeout(() => setSaveSuccess(false), 3000);
     } else {
         alert("Failed to update profile. Please try again.");
+    }
+  };
+
+  const handleSeedData = async () => {
+    if (!window.confirm("This will generate sample projects and invoices. Continue?")) return;
+    
+    setIsSeeding(true);
+    try {
+        await api.generateSampleData(user.id, user.name);
+        alert("Sample data generated successfully! Check your Dashboard.");
+    } catch (e) {
+        alert("Failed to generate data.");
+    } finally {
+        setIsSeeding(false);
     }
   };
 
@@ -127,6 +142,21 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, isDarkMode, toggleThe
                   <textarea rows={4} className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-lg p-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Tell us about yourself..."></textarea>
                 </div>
               </div>
+
+              {/* Data Management Section */}
+              <div className="pt-6 border-t border-slate-100 dark:border-navy-800">
+                   <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-2">Data Management</h4>
+                   <button 
+                     onClick={handleSeedData}
+                     disabled={isSeeding}
+                     className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium transition-colors"
+                   >
+                       {isSeeding ? <Loader2 size={16} className="animate-spin" /> : <Database size={16} />}
+                       Generate Sample Data
+                   </button>
+                   <p className="text-xs text-slate-400 mt-2">Populates your dashboard with sample projects and invoices for testing.</p>
+              </div>
+
               <div className="flex justify-end pt-4">
                 <button 
                   id="save-btn"

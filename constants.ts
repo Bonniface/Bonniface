@@ -5,7 +5,7 @@ export const ADMIN_USER: User = {
   name: 'Bonniface',
   email: 'admin@bonniface.com',
   role: UserRole.ADMIN,
-  avatarUrl: 'https://picsum.photos/seed/bonniface/200/200'
+  avatarUrl: '/assets/boni_avatar.jpg'
 };
 
 export const CLIENT_USER: User = {

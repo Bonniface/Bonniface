@@ -99,35 +99,29 @@ const App: React.FC = () => {
   const handleAuthUser = async (session: any) => {
     if (!session?.user) return;
 
-    const email = session.user.email;
-    const isBonniface = email?.includes('admin') || email?.includes('bonniface');
+    // 1. Fetch real user profile from Database
+    let dbUser = await api.fetchUserProfile(session.user.id);
     
-    let userRole = UserRole.CLIENT;
-    // Fallback name logic if metadata is missing
-    let userName = session.user.user_metadata?.full_name || email?.split('@')[0] || 'Client';
-
-    if (isBonniface) {
-        userRole = UserRole.ADMIN;
+    // 2. Fallback if profile not ready (race condition with DB trigger on signup)
+    if (!dbUser) {
+        const { email, id } = session.user;
+        const meta = session.user.user_metadata || {};
+        const isAdminEmail = email?.includes('admin') || email?.includes('bonniface');
+        
+        dbUser = {
+            id,
+            email: email || '',
+            name: meta.full_name || email?.split('@')[0] || 'User',
+            role: isAdminEmail ? UserRole.ADMIN : UserRole.CLIENT, // Temporary fallback role
+            avatarUrl: meta.avatar_url || (isAdminEmail ? '/assets/boni_avatar.jpg' : `https://picsum.photos/seed/${id}/200/200`)
+        };
     }
-    
-    // Attempt to get avatar from metadata (common in OAuth), fallback to generated based on ID/Role
-    const avatarUrl = session.user.user_metadata?.avatar_url || 
-                      session.user.user_metadata?.picture || 
-                      (isBonniface ? 'https://picsum.photos/seed/bonniface/200/200' : `https://picsum.photos/seed/${session.user.id}/200/200`);
 
-    const user: User = { 
-        id: session.user.id,
-        name: userName,
-        email: email || '',
-        role: userRole,
-        avatarUrl: avatarUrl
-    };
-
-    setCurrentUser(user);
+    setCurrentUser(dbUser);
     setNavMode('APP');
 
-    // Fetch Data
-    await loadData(user);
+    // Fetch Data using real user context
+    await loadData(dbUser);
   };
 
   // Supabase Auth Listener
@@ -319,6 +313,7 @@ const App: React.FC = () => {
           <Dashboard 
             user={currentUser} 
             projects={projects} 
+            invoices={invoices}
             onNavigate={setCurrentView} 
             isDarkMode={isDarkMode}
             toggleTheme={toggleTheme}

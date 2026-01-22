@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { User, UserRole, Project, ProjectStatus } from '../types';
+import React, { useState, useMemo } from 'react';
+import { User, UserRole, Project, ProjectStatus, Invoice } from '../types';
 import { Search, Bell, Moon, Sun, Wallet, Rocket, ClipboardList, Heart, Edit2, FileText, TrendingDown, MessageCircle, UploadCloud, Sparkles, Share2, X, ChevronRight } from 'lucide-react';
 
 interface DashboardProps {
   user: User;
   projects: Project[];
+  invoices: Invoice[];
   onNavigate: (view: any) => void;
   isDarkMode: boolean;
   toggleTheme: () => void;
@@ -12,30 +13,45 @@ interface DashboardProps {
   onToggleAI: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ user, projects, onNavigate, isDarkMode, toggleTheme, onProjectClick, onToggleAI }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, projects, invoices, onNavigate, isDarkMode, toggleTheme, onProjectClick, onToggleAI }) => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [shareSearchQuery, setShareSearchQuery] = useState('');
 
   const isAdmin = user.role === UserRole.ADMIN;
   
-  // Determine stats based on role
-  let stats = [];
+  // Calculate dynamic stats
+  const stats = useMemo(() => {
+      if (isAdmin) {
+          // Admin Stats
+          const totalRevenue = invoices
+            .filter(inv => inv.status === 'Paid')
+            .reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0);
+          
+          const activeProjects = projects.filter(p => p.status === ProjectStatus.IN_PROGRESS || p.status === ProjectStatus.PENDING).length;
+          const pendingTasks = projects.filter(p => p.status === ProjectStatus.PENDING).length; // Simplified proxy for tasks
 
-  if (isAdmin) {
-    stats = [
-      { label: "TOTAL REVENUE", value: "$124,500", trend: "+12.5% from last month", icon: Wallet, color: "text-emerald-500", bg: "bg-emerald-100 dark:bg-emerald-500/20", trendColor: "text-emerald-500" },
-      { label: "ACTIVE PROJECTS", value: "24", trend: "4 due this week", icon: Rocket, color: "text-blue-500", bg: "bg-blue-100 dark:bg-blue-500/20", trendColor: "text-slate-500" },
-      { label: "PENDING TASKS", value: "12", trend: "Requires attention", icon: ClipboardList, color: "text-amber-500", bg: "bg-amber-100 dark:bg-amber-500/20", trendColor: "text-amber-500" },
-      { label: "CLIENT SATISFACTION", value: "98%", trend: "Based on feedback", icon: Heart, color: "text-purple-500", bg: "bg-purple-100 dark:bg-purple-500/20", trendColor: "text-slate-500" },
-    ];
-  } else {
-    // Client specific stats: Remove Total Revenue, Add Amount Spent, Remove Satisfaction
-    stats = [
-        { label: "AMOUNT SPENT", value: "$14,750", trend: "Across 2 projects", icon: TrendingDown, color: "text-emerald-500", bg: "bg-emerald-100 dark:bg-emerald-500/20", trendColor: "text-emerald-500" },
-        { label: "ACTIVE PROJECTS", value: "2", trend: "On schedule", icon: Rocket, color: "text-blue-500", bg: "bg-blue-100 dark:bg-blue-500/20", trendColor: "text-slate-500" },
-        { label: "PENDING ACTIONS", value: "3", trend: "Approvals needed", icon: ClipboardList, color: "text-amber-500", bg: "bg-amber-100 dark:bg-amber-500/20", trendColor: "text-amber-500" },
-    ];
-  }
+          return [
+            { label: "TOTAL REVENUE", value: `$${totalRevenue.toLocaleString()}`, trend: "Lifetime earnings", icon: Wallet, color: "text-emerald-500", bg: "bg-emerald-100 dark:bg-emerald-500/20", trendColor: "text-emerald-500" },
+            { label: "ACTIVE PROJECTS", value: activeProjects.toString(), trend: "Current workload", icon: Rocket, color: "text-blue-500", bg: "bg-blue-100 dark:bg-blue-500/20", trendColor: "text-slate-500" },
+            { label: "PENDING ACTIONS", value: pendingTasks.toString(), trend: "Projects needing approval", icon: ClipboardList, color: "text-amber-500", bg: "bg-amber-100 dark:bg-amber-500/20", trendColor: "text-amber-500" },
+            { label: "CLIENT SATISFACTION", value: "98%", trend: "Based on feedback", icon: Heart, color: "text-purple-500", bg: "bg-purple-100 dark:bg-purple-500/20", trendColor: "text-slate-500" },
+          ];
+      } else {
+          // Client Stats
+          const totalSpent = invoices
+            .filter(inv => inv.status === 'Paid' && inv.clientName === user.name)
+            .reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0);
+          
+          const myActiveProjects = projects.filter(p => (p.status === ProjectStatus.IN_PROGRESS || p.status === ProjectStatus.PENDING)).length;
+          const pendingInvoices = invoices.filter(inv => inv.status === 'Pending' || inv.status === 'Overdue').length;
+
+          return [
+              { label: "AMOUNT SPENT", value: `$${totalSpent.toLocaleString()}`, trend: "Total investment", icon: TrendingDown, color: "text-emerald-500", bg: "bg-emerald-100 dark:bg-emerald-500/20", trendColor: "text-emerald-500" },
+              { label: "ACTIVE PROJECTS", value: myActiveProjects.toString(), trend: "On schedule", icon: Rocket, color: "text-blue-500", bg: "bg-blue-100 dark:bg-blue-500/20", trendColor: "text-slate-500" },
+              { label: "PENDING ACTIONS", value: pendingInvoices.toString(), trend: "Invoices to pay", icon: ClipboardList, color: "text-amber-500", bg: "bg-amber-100 dark:bg-amber-500/20", trendColor: "text-amber-500" },
+          ];
+      }
+  }, [projects, invoices, isAdmin, user.name]);
 
   // Filter projects for the Share Progress modal
   const filteredModalProjects = projects.filter(p => 
@@ -53,8 +69,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, projects, onNavigate, isDar
     }
   };
 
-  const getClientInitial = (name: string) => name.charAt(0);
+  const getClientInitial = (name: string) => name ? name.charAt(0) : '?';
   const getClientColor = (name: string) => {
+    if (!name) return 'bg-slate-100 text-slate-600';
     const colors = ['bg-blue-100 text-blue-600', 'bg-orange-100 text-orange-600', 'bg-emerald-100 text-emerald-600', 'bg-purple-100 text-purple-600'];
     return colors[name.length % colors.length];
   };
@@ -175,7 +192,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, projects, onNavigate, isDar
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-navy-800">
-                  {projects.map((project) => (
+                  {projects.length > 0 ? projects.map((project) => (
                     <tr 
                       key={project.id} 
                       onClick={() => onProjectClick(project)}
@@ -227,13 +244,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, projects, onNavigate, isDar
                          </div>
                       </td>
                     </tr>
-                  ))}
+                  )) : (
+                      <tr>
+                          <td colSpan={isAdmin ? 6 : 5} className="p-8 text-center text-slate-500 dark:text-slate-400">
+                              No projects found.
+                          </td>
+                      </tr>
+                  )}
                 </tbody>
               </table>
             </div>
             
             <div className="px-6 py-4 border-t border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50 dark:bg-navy-950/30">
-                <p className="text-sm text-slate-500 dark:text-slate-400 text-center sm:text-left">Showing <span className="font-semibold text-slate-900 dark:text-white">1</span> to <span className="font-semibold text-slate-900 dark:text-white">5</span> of <span className="font-semibold text-slate-900 dark:text-white">24</span> results</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 text-center sm:text-left">Showing <span className="font-semibold text-slate-900 dark:text-white">1</span> to <span className="font-semibold text-slate-900 dark:text-white">{Math.min(5, projects.length)}</span> of <span className="font-semibold text-slate-900 dark:text-white">{projects.length}</span> results</p>
                 <div className="flex gap-2">
                     <button className="px-4 py-2 border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-900 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-navy-800 disabled:opacity-50">Previous</button>
                     <button className="px-4 py-2 border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-900 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-navy-800">Next</button>

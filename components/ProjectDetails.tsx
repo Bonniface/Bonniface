@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Project, ProjectStatus, UserRole, ProjectPhase, ProjectFile, User } from '../types';
-import { ArrowLeft, CheckCircle2, Circle, Clock, FileText, Download, Upload, Calendar, Loader2, Save, Plus, Trash2, GripVertical } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Circle, Clock, FileText, Download, Upload, Calendar, Loader2, Save, Plus, Trash2, GripVertical, X, Cloud, Image as ImageIcon } from 'lucide-react';
 import { Reorder, useDragControls } from 'framer-motion';
 import * as api from '../lib/api';
 import { Footer } from './Footer';
@@ -17,25 +17,33 @@ interface PhaseItemProps {
     allPhases: ProjectPhase[];
     activePhaseId: string | null;
     isUploading: boolean;
+    uploadProgress: { current: number; total: number };
     isAdmin: boolean;
     onUpdate: (id: string, field: keyof ProjectPhase, value: any) => void;
     onDelete: (id: string) => void;
-    onUploadClick: (id: string) => void;
+    onUploadModeToggle: (id: string | null) => void;
+    onFileDrop: (e: React.DragEvent, phaseId: string) => void;
+    onFileInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    fileInputRef: React.RefObject<HTMLInputElement>;
 }
 
-const PhaseItem = ({ 
+const PhaseItem: React.FC<PhaseItemProps> = ({ 
     phase, 
     isEditing, 
     activePhaseId, 
     isUploading, 
+    uploadProgress,
     isAdmin, 
     onUpdate, 
     onDelete, 
-    onUploadClick 
-}: PhaseItemProps) => {
+    onUploadModeToggle,
+    onFileDrop,
+    onFileInputChange,
+    fileInputRef
+}) => {
     const dragControls = useDragControls();
+    const [isDragOver, setIsDragOver] = useState(false);
 
-    // Simplified Logic: No dependency locking since backend doesn't support it yet
     const getPhaseIcon = (status: string) => {
         switch (status) {
           case 'Completed': return <CheckCircle2 className="text-emerald-500" size={24} />;
@@ -43,6 +51,30 @@ const PhaseItem = ({
           default: return <Circle className="text-slate-300 dark:text-slate-600" size={24} />;
         }
     };
+
+    const handleDragEnter = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(false);
+        onFileDrop(e, phase.id);
+    };
+
+    // Calculate percentage for progress bar
+    const progressPercent = uploadProgress.total > 0 
+        ? Math.round((uploadProgress.current / uploadProgress.total) * 100) 
+        : 0;
 
     return (
         <Reorder.Item
@@ -139,46 +171,102 @@ const PhaseItem = ({
             )}
             
             {/* Files Section */}
-            {((phase.files && phase.files.length > 0) || (activePhaseId === phase.id && isUploading)) && (
-                <div className="space-y-2 mt-4 pt-4 border-t border-slate-200 dark:border-navy-800">
-                <p className="text-xs font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wider mb-2">Attached Files</p>
-                {phase.files && phase.files.map(file => (
-                    <div key={file.id} className="flex items-center justify-between p-2 bg-white dark:bg-navy-900 rounded-lg border border-slate-200 dark:border-navy-800 group">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-50 dark:bg-navy-800 text-blue-600 dark:text-blue-400 rounded">
-                        <FileText size={16} />
+            {(phase.files && phase.files.length > 0) && (
+                <div className="space-y-2 mt-4 pt-4 border-t border-slate-100 dark:border-navy-800">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wider mb-2">Attached Files</p>
+                    {phase.files.map(file => (
+                        <div key={file.id} className="flex items-center justify-between p-2 bg-white dark:bg-navy-900 rounded-lg border border-slate-200 dark:border-navy-800 group hover:border-blue-300 dark:hover:border-navy-600 transition-colors">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-blue-50 dark:bg-navy-800 text-blue-600 dark:text-blue-400 rounded">
+                                    {file.type === 'img' ? <ImageIcon size={16} /> : <FileText size={16} />}
+                                </div>
+                                <div>
+                                    <a href={file.url} target="_blank" rel="noreferrer" className="text-sm font-medium text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors hover:underline">
+                                        {file.name}
+                                    </a>
+                                    <p className="text-xs text-slate-500">Uploaded by {file.uploadedBy} • {file.date}</p>
+                                </div>
+                            </div>
+                            <a href={file.url} download={file.name} className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                                <Download size={16} />
+                            </a>
                         </div>
-                        <div>
-                        <a href={file.url} target="_blank" rel="noreferrer" className="text-sm font-medium text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors hover:underline">
-                            {file.name}
-                        </a>
-                        <p className="text-xs text-slate-500">Uploaded by {file.uploadedBy} • {file.date}</p>
-                        </div>
-                    </div>
-                    <a href={file.url} download={file.name} className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
-                        <Download size={16} />
-                    </a>
-                    </div>
-                ))}
-                
-                {activePhaseId === phase.id && isUploading && (
-                    <div className="flex items-center gap-3 p-2 bg-slate-50 dark:bg-navy-900/50 rounded-lg border border-dashed border-blue-300 dark:border-blue-700">
-                    <Loader2 className="animate-spin text-blue-600 dark:text-blue-400" size={18} />
-                    <span className="text-sm text-slate-600 dark:text-slate-300">Uploading to secure vault...</span>
-                    </div>
-                )}
+                    ))}
                 </div>
             )}
 
-            {/* Upload Button */}
-            {isAdmin && !isEditing && (phase.status === 'In Progress' || phase.status === 'Pending') && !isUploading && (
-                <button 
-                onClick={() => onUploadClick(phase.id)}
-                className="mt-4 flex items-center gap-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+            {/* Upload Area (Drag & Drop) */}
+            {activePhaseId === phase.id ? (
+                <div 
+                    className={`mt-4 rounded-xl border-2 border-dashed transition-all duration-200 overflow-hidden ${
+                        isDragOver 
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                            : 'border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-900/50'
+                    }`}
+                    onDragEnter={handleDragEnter}
+                    onDragOver={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
                 >
-                <Upload size={14} />
-                Upload file to this phase
-                </button>
+                    {isUploading ? (
+                        <div className="p-6 flex flex-col items-center justify-center">
+                             <div className="w-full max-w-xs mb-2">
+                                <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
+                                    <span>Uploading...</span>
+                                    <span>{progressPercent}%</span>
+                                </div>
+                                <div className="h-2 w-full bg-slate-200 dark:bg-navy-700 rounded-full overflow-hidden">
+                                    <div 
+                                        className="h-full bg-blue-600 dark:bg-blue-500 rounded-full transition-all duration-300 ease-out"
+                                        style={{ width: `${progressPercent}%` }}
+                                    />
+                                </div>
+                             </div>
+                             <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                 Processing file {Math.min(uploadProgress.current + 1, uploadProgress.total)} of {uploadProgress.total}
+                             </p>
+                        </div>
+                    ) : (
+                        <div className="relative p-6 flex flex-col items-center justify-center text-center group">
+                            <button 
+                                onClick={() => onUploadModeToggle(null)}
+                                className="absolute top-2 right-2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-200 dark:hover:bg-navy-800 transition-colors"
+                            >
+                                <X size={16} />
+                            </button>
+                            
+                            <div className="w-12 h-12 bg-white dark:bg-navy-800 rounded-full flex items-center justify-center text-blue-500 mb-3 shadow-sm group-hover:scale-110 transition-transform">
+                                <Cloud size={24} />
+                            </div>
+                            <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
+                                Drag files here or <button onClick={() => fileInputRef.current?.click()} className="text-blue-600 hover:underline">browse</button>
+                            </h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Supports images, documents, CSV, and ZIP
+                            </p>
+                            
+                            {/* Hidden Input for Click Selection */}
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                className="hidden" 
+                                multiple
+                                onChange={onFileInputChange} 
+                            />
+                        </div>
+                    )}
+                </div>
+            ) : (
+                /* Collapsed Upload Button */
+                isAdmin && !isEditing && (phase.status === 'In Progress' || phase.status === 'Pending') && (
+                    <button 
+                        onClick={() => onUploadModeToggle(phase.id)}
+                        className="mt-4 flex items-center gap-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                    >
+                        <Upload size={14} />
+                        Upload files to this phase
+                    </button>
+                )
             )}
             </div>
         </Reorder.Item>
@@ -189,7 +277,10 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, currentUser, o
   const [currentProject, setCurrentProject] = useState<Project>(project);
   const [activePhaseId, setActivePhaseId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const [isEditing, setIsEditing] = useState(false);
+  
+  // Ref for file input element inside PhaseItem
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isAdmin = currentUser.role === UserRole.ADMIN;
@@ -203,43 +294,76 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, currentUser, o
     }
   };
 
-  const handleUploadClick = (phaseId: string) => {
+  const handleUploadModeToggle = (phaseId: string | null) => {
     setActivePhaseId(phaseId);
-    setTimeout(() => fileInputRef.current?.click(), 0);
+    // Reset any pending inputs
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !activePhaseId) return;
+  const processFiles = async (files: FileList) => {
+      if (!files || files.length === 0 || !activePhaseId) return;
 
-    setIsUploading(true);
+      setIsUploading(true);
+      setUploadProgress({ current: 0, total: files.length });
 
-    try {
-        const newFile = await api.uploadProjectFile(file, activePhaseId, currentUser.name);
+      try {
+          const newFiles: ProjectFile[] = [];
 
-        if (newFile) {
+          for (let i = 0; i < files.length; i++) {
+              const file = files[i];
+              // Upload sequentially
+              const uploaded = await api.uploadProjectFile(file, activePhaseId, currentUser.name);
+              
+              if (uploaded) {
+                  newFiles.push(uploaded);
+              }
+              
+              // Update progress
+              setUploadProgress(prev => ({ ...prev, current: i + 1 }));
+          }
+
+          // Update Project State with all new files
+          if (newFiles.length > 0) {
             setCurrentProject(prev => {
                 const updatedPhases = prev.phases?.map(phase => {
                     if (phase.id === activePhaseId) {
                         return {
                             ...phase,
-                            files: [...(phase.files || []), newFile]
+                            files: [...(phase.files || []), ...newFiles]
                         };
                     }
                     return phase;
                 });
                 return { ...prev, phases: updatedPhases };
             });
-        }
-    } catch (error) {
-        console.error('Upload failed', error);
-    } finally {
-        setIsUploading(false);
-        setActivePhaseId(null);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
-    }
+          }
+
+      } catch (error) {
+          console.error('Batch Upload failed', error);
+          alert('Some files failed to upload. Please check the console or try again.');
+      } finally {
+          setIsUploading(false);
+          setActivePhaseId(null); // Close dropzone on finish
+          if (fileInputRef.current) {
+              fileInputRef.current.value = '';
+          }
+      }
+  };
+
+  const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (event.target.files) {
+          processFiles(event.target.files);
+      }
+  };
+
+  const handleFileDrop = (event: React.DragEvent, phaseId: string) => {
+      // Ensure we are dropping onto the active phase
+      if (phaseId !== activePhaseId) return;
+      
+      const files = event.dataTransfer.files;
+      if (files && files.length > 0) {
+          processFiles(files);
+      }
   };
 
   const toggleEditMode = () => {
@@ -306,15 +430,6 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, currentUser, o
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-slate-50 dark:bg-navy-950 transition-colors">
       
-      {isAdmin && (
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          className="hidden" 
-          onChange={handleFileChange} 
-        />
-      )}
-
       <div className="flex-1 overflow-y-auto p-4 lg:p-8 pt-16 lg:pt-8 flex flex-col">
         <div className="max-w-7xl mx-auto w-full flex-1">
             <div className="mb-8">
@@ -398,10 +513,14 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, currentUser, o
                                 allPhases={currentProject.phases || []}
                                 activePhaseId={activePhaseId}
                                 isUploading={isUploading}
+                                uploadProgress={uploadProgress}
                                 isAdmin={isAdmin}
                                 onUpdate={handlePhaseUpdate}
                                 onDelete={handleDeletePhase}
-                                onUploadClick={handleUploadClick}
+                                onUploadModeToggle={handleUploadModeToggle}
+                                onFileDrop={handleFileDrop}
+                                onFileInputChange={handleFileInputChange}
+                                fileInputRef={fileInputRef}
                             />
                         ))
                     ) : (
