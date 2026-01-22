@@ -78,6 +78,7 @@ export interface Message {
   senderId: string;
   content: string;
   timestamp: string;
+  createdAt?: string;
   attachments?: { name: string; type: 'pdf' | 'csv' | 'img'; url: string }[];
   isRead: boolean;
 }
@@ -90,6 +91,7 @@ export interface ChatSession {
   lastMessage: string;
   unreadCount: number;
   timestamp: string;
+  lastMessageDate?: string;
   messages: Message[];
 }
 

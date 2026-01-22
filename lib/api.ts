@@ -409,12 +409,14 @@ export const uploadChatAttachment = async (file: File, roomId: string): Promise<
 
 export const markRoomAsRead = async (roomId: string, userId: string) => {
     // Mark all messages in this room NOT sent by current user as read
-    await supabase
+    const { error } = await supabase
         .from('messages')
         .update({ is_read: true })
         .eq('room_id', roomId)
         .neq('user_id', userId) // Messages I received
         .eq('is_read', false);
+        
+    if (error) console.error("Error marking read:", error);
 };
 
 export const fetchUserChats = async (userId: string): Promise<ChatSession[]> => {
@@ -469,6 +471,7 @@ export const fetchUserChats = async (userId: string): Promise<ChatSession[]> => 
         senderId: m.user_id,
         content: m.content,
         timestamp: new Date(m.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+        createdAt: m.created_at,
         _fullDate: new Date(m.created_at),
         isRead: m.is_read,
         attachments: m.file_url ? [{
@@ -491,6 +494,7 @@ export const fetchUserChats = async (userId: string): Promise<ChatSession[]> => 
         lastMessage: lastMsg?.content || (lastMsg?.attachments ? 'Sent a file' : 'Start a conversation...'),
         unreadCount: unreadCount,
         timestamp: lastMsg?.timestamp || '',
+        lastMessageDate: lastMsg?.createdAt,
         messages: messages
      };
   });

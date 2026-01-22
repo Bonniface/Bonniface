@@ -23,6 +23,38 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
 
   const activeSession = sessions.find(s => s.id === activeSessionId);
 
+  // Helper to format time relatively
+  const formatRelativeTime = (dateStr?: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (seconds < 60) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24 && date.getDate() === now.getDate()) {
+        return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    }
+    
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (date.getDate() === yesterday.getDate() && date.getMonth() === yesterday.getMonth() && date.getFullYear() === yesterday.getFullYear()) {
+        return `Yesterday at ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+    }
+    
+    if (days < 7) {
+        return date.toLocaleDateString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+    }
+    
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  };
+
   // Auto-scroll to bottom
   useEffect(() => {
      if (activeSessionId) {
@@ -42,26 +74,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
 
   // Realtime Subscription
   useEffect(() => {
-      // Listen to ALL messages to update sidebar counts even if not active
+      // Listen to ALL message events (INSERT, UPDATE for read status) to update sidebar counts
       const channel = supabase
         .channel(`public:messages`)
         .on('postgres_changes', { 
-            event: 'INSERT', 
+            event: '*', // Listen to INSERT and UPDATE (for is_read changes)
             schema: 'public', 
             table: 'messages',
         }, (payload) => {
-            // If the message is relevant to us (we are not sender)
-            if (payload.new.user_id !== currentUser.id) {
-                // If it's for the ACTIVE room, mark as read immediately
-                if (payload.new.room_id === activeSessionId) {
-                    api.markRoomAsRead(activeSessionId, currentUser.id);
+            // Check if we need to mark as read immediately (if looking at active session)
+            if (payload.eventType === 'INSERT') {
+                const newMsg = payload.new as any;
+                if (newMsg.user_id !== currentUser.id && newMsg.room_id === activeSessionId) {
+                     api.markRoomAsRead(activeSessionId, currentUser.id);
                 }
-                // Refresh to show new message or update counts
-                if (onRefresh) onRefresh();
-            } else {
-                // Sent by me (maybe from another device), refresh to see it
-                if (onRefresh) onRefresh();
             }
+
+            // Always trigger refresh to update counts/list for any relevant message change
+            if (onRefresh) onRefresh();
         })
         .subscribe();
 
@@ -120,50 +150,77 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
     <div className="h-screen flex bg-slate-50 dark:bg-navy-950 pt-16 lg:pt-4 pb-4 pr-4 pl-4 lg:pl-0 transition-colors duration-300">
       
       {/* Sidebar List */}
-      <div className={`${showMobileChat ? 'hidden' : 'flex'} lg:flex w-full lg:w-80 border-r lg:border-r border-slate-200 dark:border-navy-800 flex-col bg-white dark:bg-navy-900/50 rounded-2xl lg:rounded-r-none lg:rounded-l-2xl shadow-sm dark:shadow-none h-full`}>
-        <div className="p-4 border-b border-slate-200 dark:border-navy-800">
+      <div className={`${showMobileChat ? 'hidden' : 'flex'} lg:flex w-full lg:w-96 border-r lg:border-r border-slate-200 dark:border-navy-800 flex-col bg-white dark:bg-navy-900/50 rounded-2xl lg:rounded-r-none lg:rounded-l-2xl shadow-sm dark:shadow-none h-full`}>
+        <div className="p-5 border-b border-slate-200 dark:border-navy-800">
           <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4 pl-8 lg:pl-0">Messages</h2>
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 text-slate-400 dark:text-slate-500" size={18} />
+          <div className="relative group">
+            <Search className="absolute left-3 top-2.5 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
             <input 
               type="text" 
               placeholder="Search chats..." 
-              className="w-full bg-slate-100 dark:bg-navy-950 text-slate-900 dark:text-slate-300 pl-10 pr-4 py-2 rounded-lg border-none focus:ring-2 focus:ring-blue-500 dark:focus:border-cobalt-500 text-sm outline-none transition-colors"
+              className="w-full bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-navy-800 focus:border-blue-500 dark:focus:border-cobalt-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-cobalt-900/30 text-sm outline-none transition-all"
             />
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
-          {sessions.map(session => (
+        <div className="flex-1 overflow-y-auto scroll-smooth">
+          {sessions.map(session => {
+            const isUnread = session.unreadCount > 0;
+            const lastMsg = session.messages[session.messages.length - 1];
+            const isMe = lastMsg?.senderId === currentUser.id;
+
+            return (
             <div 
               key={session.id}
               onClick={() => handleSessionClick(session.id)}
-              className={`p-4 border-b border-slate-100 dark:border-navy-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-navy-800 transition-colors ${
+              className={`p-4 border-b border-slate-50 dark:border-navy-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-navy-800/50 transition-all duration-200 ${
                 activeSessionId === session.id 
-                  ? 'bg-blue-50 dark:bg-navy-800 border-l-2 border-l-blue-600 dark:border-l-cobalt-500' 
-                  : 'border-l-2 border-l-transparent'
+                  ? 'bg-blue-50/80 dark:bg-navy-800 border-l-4 border-l-blue-600 dark:border-l-cobalt-500 shadow-inner' 
+                  : 'border-l-4 border-l-transparent'
               }`}
             >
-              <div className="flex gap-3">
-                <img src={session.participantAvatar} alt="" className="w-10 h-10 rounded-full bg-slate-200 dark:bg-navy-700 object-cover" />
+              <div className="flex gap-4 items-center">
+                <div className="relative shrink-0">
+                    <img 
+                        src={session.participantAvatar} 
+                        alt="" 
+                        className="w-12 h-12 rounded-full bg-slate-200 dark:bg-navy-700 object-cover shadow-sm border border-slate-100 dark:border-navy-600" 
+                    />
+                    {/* Online status indicator mock */}
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-navy-900 rounded-full"></div>
+                </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-baseline mb-1">
-                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white truncate">{session.participantName}</h3>
-                    <span className="text-xs text-slate-400 dark:text-slate-500">{session.timestamp}</span>
+                  <div className="flex justify-between items-center mb-1">
+                    <div className="flex items-center gap-2 max-w-[70%]">
+                        <h3 className={`text-base font-bold truncate ${isUnread || activeSessionId === session.id ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-200'}`}>
+                            {session.participantName}
+                        </h3>
+                        {session.unreadCount > 0 && (
+                            <span className="flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold px-1.5 h-4 rounded-full min-w-[1.2rem] shadow-sm shadow-blue-500/20">
+                                {session.unreadCount}
+                            </span>
+                        )}
+                    </div>
+                    <span className={`text-xs whitespace-nowrap ${isUnread ? 'text-blue-600 dark:text-blue-400 font-semibold' : 'text-slate-400 dark:text-slate-500'}`}>
+                        {formatRelativeTime(session.lastMessageDate) || session.timestamp}
+                    </span>
                   </div>
+                  
                   <div className="flex justify-between items-center">
-                      <p className={`text-xs truncate flex-1 ${session.unreadCount > 0 ? 'text-slate-900 dark:text-white font-medium' : 'text-slate-500 dark:text-slate-400'}`}>
+                      <p className={`text-sm truncate flex-1 ${isUnread ? 'text-slate-800 dark:text-slate-100 font-medium' : 'text-slate-500 dark:text-slate-400'}`}>
+                        {isMe && <span className="text-slate-400 dark:text-slate-500 mr-1">You:</span>}
                         {session.lastMessage}
                       </p>
-                      {session.unreadCount > 0 && (
-                          <span className="ml-2 w-5 h-5 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full">
-                              {session.unreadCount}
-                          </span>
-                      )}
                   </div>
                 </div>
               </div>
             </div>
-          ))}
+          )})}
+
+          {sessions.length === 0 && (
+              <div className="p-8 text-center text-slate-400 dark:text-slate-500 text-sm">
+                  No conversations found.
+              </div>
+          )}
         </div>
       </div>
 
@@ -171,8 +228,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
       {activeSession ? (
         <div className={`${!showMobileChat ? 'hidden' : 'flex'} lg:flex flex-1 flex-col bg-white dark:bg-navy-900 rounded-2xl lg:rounded-l-none lg:rounded-r-2xl border border-l-0 border-slate-200 dark:border-navy-800 relative overflow-hidden shadow-sm dark:shadow-none transition-colors duration-300 h-full`}>
             {/* Header */}
-            <div className="h-16 border-b border-slate-200 dark:border-navy-800 flex items-center justify-between px-4 lg:px-6 bg-white dark:bg-navy-900 z-10">
-            <div className="flex items-center gap-3">
+            <div className="h-20 border-b border-slate-200 dark:border-navy-800 flex items-center justify-between px-4 lg:px-8 bg-white dark:bg-navy-900 z-10 shrink-0">
+            <div className="flex items-center gap-4">
                 <button 
                     onClick={handleBackToList}
                     className="lg:hidden p-1 -ml-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
@@ -180,24 +237,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
                     <ChevronLeft size={24} />
                 </button>
 
-                <img src={activeSession.participantAvatar} alt="" className="w-9 h-9 rounded-full object-cover" />
+                <div className="relative">
+                    <img src={activeSession.participantAvatar} alt="" className="w-10 h-10 rounded-full object-cover shadow-sm" />
+                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-navy-900 rounded-full"></div>
+                </div>
                 <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">{activeSession.participantName}</h3>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">{activeSession.participantName}</h3>
                 <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
                     <span className="text-xs text-slate-500 dark:text-slate-400">Online</span>
                 </div>
                 </div>
             </div>
             <div className="flex items-center gap-2 lg:gap-4 text-slate-400 dark:text-slate-400">
-                <button className="hover:text-blue-600 dark:hover:text-white p-2"><Phone size={20} /></button>
-                <button className="hover:text-blue-600 dark:hover:text-white p-2"><Video size={20} /></button>
-                <button className="hover:text-blue-600 dark:hover:text-white p-2"><MoreVertical size={20} /></button>
+                <button className="hover:text-blue-600 dark:hover:text-white p-2 transition-colors"><Phone size={20} /></button>
+                <button className="hover:text-blue-600 dark:hover:text-white p-2 transition-colors"><Video size={20} /></button>
+                <button className="hover:text-blue-600 dark:hover:text-white p-2 transition-colors"><MoreVertical size={20} /></button>
             </div>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6 bg-slate-50 dark:bg-navy-900/50">
+            <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-6 bg-slate-50 dark:bg-navy-900/50">
             {activeSession.messages.map((msg) => {
                 const isMe = msg.senderId === currentUser.id;
                 return (
@@ -236,7 +295,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
                         )}
                     </div>
                     <div className="flex items-center gap-1 mt-1 px-1">
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500">{msg.timestamp}</span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                          {formatRelativeTime(msg.createdAt) || msg.timestamp}
+                        </span>
                         {isMe && msg.isRead && (
                             <span className="text-[10px] text-blue-400 font-medium">Read</span>
                         )}
@@ -250,7 +311,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
 
             {/* Attachment Preview Area */}
             {attachedFile && (
-                <div className="px-4 py-2 bg-slate-50 dark:bg-navy-950 border-t border-slate-200 dark:border-navy-800 flex items-center justify-between">
+                <div className="px-6 py-3 bg-slate-50 dark:bg-navy-950 border-t border-slate-200 dark:border-navy-800 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-blue-100 dark:bg-navy-800 rounded-lg text-blue-600 dark:text-blue-400">
                             {attachedFile.type.startsWith('image/') ? <Image size={18} /> : <FileText size={18} />}
@@ -267,11 +328,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
             )}
 
             {/* Input */}
-            <div className="p-4 bg-white dark:bg-navy-900 border-t border-slate-200 dark:border-navy-800">
+            <div className="p-4 lg:p-6 bg-white dark:bg-navy-900 border-t border-slate-200 dark:border-navy-800">
             <div className="flex items-center gap-3 bg-slate-100 dark:bg-navy-950 p-2 rounded-xl border border-transparent focus-within:border-blue-500 dark:focus-within:border-cobalt-500 transition-colors">
                 <button 
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-white hover:bg-white dark:hover:bg-navy-800 rounded-lg transition-colors"
+                    className="p-2.5 text-slate-400 hover:text-blue-600 dark:hover:text-white hover:bg-white dark:hover:bg-navy-800 rounded-lg transition-colors"
                 >
                     <Paperclip size={20} />
                 </button>
@@ -287,27 +348,32 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Type message..."
-                    className="flex-1 bg-transparent text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none text-sm"
+                    className="flex-1 bg-transparent text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none text-sm px-2"
                     onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                     disabled={isSending}
                 />
                 <button 
                     onClick={handleSendMessage}
                     disabled={(!newMessage.trim() && !attachedFile) || isSending}
-                    className={`p-2 rounded-lg transition-all ${
+                    className={`p-2.5 rounded-lg transition-all ${
                         (newMessage.trim() || attachedFile)
-                        ? 'bg-blue-600 dark:bg-cobalt-600 text-white shadow-lg shadow-blue-600/20 dark:shadow-cobalt-600/20' 
+                        ? 'bg-blue-600 dark:bg-cobalt-600 text-white shadow-lg shadow-blue-600/20 dark:shadow-cobalt-600/20 hover:scale-105' 
                         : 'bg-slate-200 dark:bg-navy-800 text-slate-400 dark:text-slate-500'
                     }`}
                 >
-                    {isSending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                    {isSending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
                 </button>
             </div>
             </div>
         </div>
       ) : (
-          <div className="hidden lg:flex flex-1 items-center justify-center text-slate-400 bg-slate-50 dark:bg-navy-900/30 rounded-r-2xl">
-              Select a conversation to start messaging
+          <div className="hidden lg:flex flex-1 items-center justify-center text-slate-400 bg-slate-50 dark:bg-navy-900/30 rounded-r-2xl border border-l-0 border-slate-200 dark:border-navy-800">
+              <div className="text-center">
+                  <div className="w-16 h-16 bg-slate-100 dark:bg-navy-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+                      <Send size={24} />
+                  </div>
+                  <p className="text-slate-500 dark:text-slate-400">Select a conversation to start messaging</p>
+              </div>
           </div>
       )}
     </div>
