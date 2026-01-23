@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatSession, User } from '../types';
-import { Send, Paperclip, Search, MoreVertical, FileText, Image, Phone, Video, ChevronLeft, Loader2, X, Download } from 'lucide-react';
+import { Send, Paperclip, Search, MoreVertical, FileText, Image, Phone, Video, ChevronLeft, Loader2, X, Download, PlusCircle, MessageSquarePlus } from 'lucide-react';
 import * as api from '../lib/api';
 import { supabase } from '../lib/supabaseClient';
 
@@ -16,6 +16,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
   const [isMobileView, setIsMobileView] = useState(false);
   const [showMobileChat, setShowMobileChat] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isCreatingChat, setIsCreatingChat] = useState(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -26,6 +27,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
   useEffect(() => {
     onRefreshRef.current = onRefresh;
   }, [onRefresh]);
+
+  // If sessions list changes and we have an active session ID that matches a new session, update active session data implicitly by render
+  // If we were waiting for a new chat to be created (e.g. activeSessionId set but not in list yet), check if it appeared
+  useEffect(() => {
+     if (sessions.length > 0 && !activeSessionId) {
+         setActiveSessionId(sessions[0].id);
+     }
+  }, [sessions, activeSessionId]);
 
   const activeSession = sessions.find(s => s.id === activeSessionId);
 
@@ -122,6 +131,32 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
       }
   };
 
+  const handleStartChat = async () => {
+      setIsCreatingChat(true);
+      try {
+          if (currentUser.role === 'ADMIN') {
+              alert("As an admin, please navigate to the Projects or Clients page to initiate a conversation.");
+              return;
+          }
+
+          // For Clients: Ensure chat with Admin
+          const roomId = await api.startSupportChat(currentUser.id);
+          if (roomId) {
+              if (onRefreshRef.current) {
+                  await onRefreshRef.current();
+              }
+              setActiveSessionId(roomId);
+              setShowMobileChat(true);
+          } else {
+              alert("Failed to start chat. Support might not be configured.");
+          }
+      } catch (error) {
+          console.error("Error creating chat:", error);
+      } finally {
+          setIsCreatingChat(false);
+      }
+  };
+
   const handleSendMessage = async () => {
       if ((!newMessage.trim() && !attachedFile) || !activeSessionId || isSending) return;
 
@@ -140,13 +175,30 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
       }
   };
 
+  // Empty State with "Start Chat" button
   if (!activeSession && sessions.length === 0) {
       return (
           <div className="h-screen flex items-center justify-center text-slate-500 bg-slate-50 dark:bg-navy-950">
-              <div className="text-center">
-                  <p className="mb-4">No active conversations.</p>
+              <div className="text-center p-6">
+                  <div className="w-16 h-16 bg-blue-50 dark:bg-navy-900 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-500 dark:text-blue-400">
+                      <MessageSquarePlus size={32} />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">No active conversations</h3>
+                  <p className="mb-6 text-sm max-w-xs mx-auto">
+                      {currentUser.role !== 'ADMIN' 
+                          ? "Have a question? Start a direct chat with our support team." 
+                          : "No client messages yet."}
+                  </p>
+                  
                   {currentUser.role !== 'ADMIN' && (
-                      <p className="text-sm">Start a project to chat with our team.</p>
+                      <button 
+                        onClick={handleStartChat}
+                        disabled={isCreatingChat}
+                        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-lg shadow-blue-600/20 transition-all flex items-center gap-2 mx-auto disabled:opacity-70"
+                      >
+                          {isCreatingChat ? <Loader2 className="animate-spin" size={20} /> : <PlusCircle size={20} />}
+                          <span>Start Support Chat</span>
+                      </button>
                   )}
               </div>
           </div>
@@ -158,17 +210,31 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
       
       {/* Sidebar List */}
       <div className={`${showMobileChat ? 'hidden' : 'flex'} lg:flex w-full lg:w-96 border-r lg:border-r border-slate-200 dark:border-navy-800 flex-col bg-white dark:bg-navy-900/50 rounded-2xl lg:rounded-r-none lg:rounded-l-2xl shadow-sm dark:shadow-none h-full`}>
-        <div className="p-5 border-b border-slate-200 dark:border-navy-800">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4 pl-8 lg:pl-0">Messages</h2>
-          <div className="relative group">
-            <Search className="absolute left-3 top-2.5 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
-            <input 
-              type="text" 
-              placeholder="Search chats..." 
-              className="w-full bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-navy-800 focus:border-blue-500 dark:focus:border-cobalt-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-cobalt-900/30 text-sm outline-none transition-all"
-            />
+        <div className="p-5 border-b border-slate-200 dark:border-navy-800 flex justify-between items-center">
+          <div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white pl-8 lg:pl-0">Messages</h2>
           </div>
+          <button 
+            onClick={handleStartChat}
+            disabled={isCreatingChat}
+            className="p-2 bg-slate-100 dark:bg-navy-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 rounded-lg transition-colors"
+            title="Start New Chat"
+          >
+              {isCreatingChat ? <Loader2 className="animate-spin" size={20} /> : <PlusCircle size={20} />}
+          </button>
         </div>
+        
+        <div className="px-5 pb-2">
+            <div className="relative group">
+                <Search className="absolute left-3 top-2.5 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+                <input 
+                type="text" 
+                placeholder="Search chats..." 
+                className="w-full bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-navy-800 focus:border-blue-500 dark:focus:border-cobalt-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-cobalt-900/30 text-sm outline-none transition-all"
+                />
+            </div>
+        </div>
+
         <div className="flex-1 overflow-y-auto scroll-smooth">
           {sessions.map(session => {
             const isUnread = session.unreadCount > 0;
@@ -382,6 +448,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
                       <Send size={24} />
                   </div>
                   <p className="text-slate-500 dark:text-slate-400">Select a conversation to start messaging</p>
+                  
+                  {currentUser.role !== 'ADMIN' && (
+                      <button 
+                          onClick={handleStartChat}
+                          disabled={isCreatingChat}
+                          className="mt-4 px-5 py-2.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl text-sm font-medium transition-colors"
+                      >
+                          {isCreatingChat ? "Starting..." : "Or start a new chat"}
+                      </button>
+                  )}
               </div>
           </div>
       )}

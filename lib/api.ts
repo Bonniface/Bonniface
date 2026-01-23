@@ -262,6 +262,13 @@ const ensureChatRoom = async (userId: string, adminId: string): Promise<string |
     return newRoom.id;
 };
 
+export const startSupportChat = async (userId: string): Promise<string | null> => {
+    const adminId = await getAdminId();
+    if (!adminId) return null;
+    if (userId === adminId) return null;
+    return ensureChatRoom(userId, adminId);
+};
+
 export const createProject = async (
   title: string, 
   budget: number, 
@@ -420,11 +427,8 @@ export const markRoomAsRead = async (roomId: string, userId: string) => {
 };
 
 export const fetchUserChats = async (userId: string): Promise<ChatSession[]> => {
-  const adminId = await getAdminId();
-  if (adminId && userId !== adminId) {
-     await ensureChatRoom(userId, adminId);
-  }
-
+  // Removed automatic creation of admin chat to allow user initiation
+  
   const { data: myRooms } = await supabase
     .from('room_members')
     .select('room_id')

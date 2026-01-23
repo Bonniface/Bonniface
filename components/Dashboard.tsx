@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { User, UserRole, Project, ProjectStatus, Invoice } from '../types';
-import { Search, Bell, Moon, Sun, Wallet, Rocket, ClipboardList, Heart, Edit2, FileText, TrendingDown, MessageCircle, UploadCloud, Sparkles, Share2, X, ChevronRight } from 'lucide-react';
+import { Search, Bell, Moon, Sun, Wallet, Rocket, ClipboardList, Heart, Edit2, FileText, TrendingDown, MessageCircle, UploadCloud, Sparkles, Share2, X, ChevronRight, Users } from 'lucide-react';
 
 interface DashboardProps {
   user: User;
@@ -170,39 +170,46 @@ const Dashboard: React.FC<DashboardProps> = ({ user, projects, invoices, onNavig
             ))}
           </div>
 
-          {/* Recent Projects Table */}
-          <div className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 shadow-sm overflow-hidden transition-colors duration-300">
-            <div className="p-6 border-b border-slate-200 dark:border-navy-800 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Recent Projects</h3>
-              <button className="text-blue-600 dark:text-cobalt-400 text-sm font-medium hover:underline flex items-center gap-1">
-                Export CSV <span className="text-lg">↓</span>
-              </button>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-navy-950/50 border-b border-slate-200 dark:border-navy-800">
-                    <th className="px-6 py-4 text-left text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Project Name</th>
-                    {isAdmin && <th className="px-6 py-4 text-left text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Client</th>}
-                    <th className="px-6 py-4 text-left text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Service Type</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Budget</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Status</th>
-                    <th className="px-6 py-4 text-right text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-navy-800">
-                  {projects.length > 0 ? projects.map((project) => (
-                    <tr 
-                      key={project.id} 
-                      onClick={() => onProjectClick(project)}
-                      className="hover:bg-slate-50 dark:hover:bg-navy-800/50 transition-colors cursor-pointer group"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{project.title}</div>
-                        <div className="text-xs text-slate-500 dark:text-slate-500">ID: #{project.id}</div>
-                      </td>
-                      {isAdmin && (
+          {/* Projects Table - Conditionally Rendered */}
+          {isAdmin ? (
+            /* ADMIN VIEW: Shows all projects with Client info */
+            <div className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 shadow-sm overflow-hidden transition-colors duration-300">
+              <div className="p-6 border-b border-slate-200 dark:border-navy-800 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <Users className="text-blue-500 dark:text-cobalt-400" size={24} />
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Client Projects</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Manage all incoming projects assigned to you</p>
+                    </div>
+                </div>
+                <button className="text-blue-600 dark:text-cobalt-400 text-sm font-medium hover:underline flex items-center gap-1">
+                  Export CSV <span className="text-lg">↓</span>
+                </button>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-navy-950/50 border-b border-slate-200 dark:border-navy-800">
+                      <th className="px-6 py-4 text-left text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Project Name</th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Client</th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Service Type</th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Budget</th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Status</th>
+                      <th className="px-6 py-4 text-right text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-navy-800">
+                    {projects.length > 0 ? projects.map((project) => (
+                      <tr 
+                        key={project.id} 
+                        onClick={() => onProjectClick(project)}
+                        className="hover:bg-slate-50 dark:hover:bg-navy-800/50 transition-colors cursor-pointer group"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="font-medium text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{project.title}</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-500">ID: #{project.id}</div>
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                            <div className="flex items-center gap-3">
                               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${getClientColor(project.clientName)}`}>
@@ -214,55 +221,117 @@ const Dashboard: React.FC<DashboardProps> = ({ user, projects, invoices, onNavig
                               </div>
                            </div>
                         </td>
-                      )}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                           {/* Simple Icon mapping */}
-                           <div className="p-1.5 bg-slate-100 dark:bg-navy-800 rounded text-slate-500 dark:text-slate-400">
-                              <Rocket size={14} />
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                             <div className="p-1.5 bg-slate-100 dark:bg-navy-800 rounded text-slate-500 dark:text-slate-400">
+                                <Rocket size={14} />
+                             </div>
+                             {project.serviceType === 'Data Science' ? 'Data Vis.' : project.serviceType}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm font-semibold text-slate-900 dark:text-slate-200 whitespace-nowrap">
+                          ${project.budget.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit border border-current bg-opacity-10 ${getStatusStyle(project.status)}`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                            {project.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right whitespace-nowrap">
+                           <div className="flex items-center justify-end gap-2">
+                              <button className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-cobalt-400 transition-colors">
+                                 <Edit2 size={16} />
+                              </button>
+                              <button className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-cobalt-400 transition-colors">
+                                 <FileText size={16} />
+                              </button>
                            </div>
-                           {project.serviceType === 'Data Science' ? 'Data Vis.' : project.serviceType}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-900 dark:text-slate-200 whitespace-nowrap">
-                        ${project.budget.toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit border border-current bg-opacity-10 ${getStatusStyle(project.status)}`}>
-                          <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-                          {project.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right whitespace-nowrap">
-                         <div className="flex items-center justify-end gap-2">
-                            <button className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-cobalt-400 transition-colors">
-                               <Edit2 size={16} />
-                            </button>
-                            <button className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-cobalt-400 transition-colors">
-                               <FileText size={16} />
-                            </button>
-                         </div>
-                      </td>
-                    </tr>
-                  )) : (
-                      <tr>
-                          <td colSpan={isAdmin ? 6 : 5} className="p-8 text-center text-slate-500 dark:text-slate-400">
-                              No projects found.
-                          </td>
+                        </td>
                       </tr>
-                  )}
-                </tbody>
-              </table>
+                    )) : (
+                        <tr>
+                            <td colSpan={6} className="p-8 text-center text-slate-500 dark:text-slate-400">
+                                No projects assigned yet.
+                            </td>
+                        </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            
-            <div className="px-6 py-4 border-t border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50 dark:bg-navy-950/30">
-                <p className="text-sm text-slate-500 dark:text-slate-400 text-center sm:text-left">Showing <span className="font-semibold text-slate-900 dark:text-white">1</span> to <span className="font-semibold text-slate-900 dark:text-white">{Math.min(5, projects.length)}</span> of <span className="font-semibold text-slate-900 dark:text-white">{projects.length}</span> results</p>
-                <div className="flex gap-2">
-                    <button className="px-4 py-2 border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-900 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-navy-800 disabled:opacity-50">Previous</button>
-                    <button className="px-4 py-2 border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-900 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-navy-800">Next</button>
-                </div>
+          ) : (
+            /* CLIENT VIEW: Shows own projects */
+            <div className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 shadow-sm overflow-hidden transition-colors duration-300">
+              <div className="p-6 border-b border-slate-200 dark:border-navy-800 flex justify-between items-center">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Recent Projects</h3>
+                <button className="text-blue-600 dark:text-cobalt-400 text-sm font-medium hover:underline flex items-center gap-1">
+                  Export CSV <span className="text-lg">↓</span>
+                </button>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-navy-950/50 border-b border-slate-200 dark:border-navy-800">
+                      <th className="px-6 py-4 text-left text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Project Name</th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Service Type</th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Budget</th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Status</th>
+                      <th className="px-6 py-4 text-right text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-navy-800">
+                    {projects.length > 0 ? projects.map((project) => (
+                      <tr 
+                        key={project.id} 
+                        onClick={() => onProjectClick(project)}
+                        className="hover:bg-slate-50 dark:hover:bg-navy-800/50 transition-colors cursor-pointer group"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="font-medium text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{project.title}</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-500">ID: #{project.id}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                             <div className="p-1.5 bg-slate-100 dark:bg-navy-800 rounded text-slate-500 dark:text-slate-400">
+                                <Rocket size={14} />
+                             </div>
+                             {project.serviceType === 'Data Science' ? 'Data Vis.' : project.serviceType}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm font-semibold text-slate-900 dark:text-slate-200 whitespace-nowrap">
+                          ${project.budget.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit border border-current bg-opacity-10 ${getStatusStyle(project.status)}`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                            {project.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right whitespace-nowrap">
+                           <div className="flex items-center justify-end gap-2">
+                              <button className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-cobalt-400 transition-colors">
+                                 <Edit2 size={16} />
+                              </button>
+                              <button className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-cobalt-400 transition-colors">
+                                 <FileText size={16} />
+                              </button>
+                           </div>
+                        </td>
+                      </tr>
+                    )) : (
+                        <tr>
+                            <td colSpan={5} className="p-8 text-center text-slate-500 dark:text-slate-400">
+                                No projects found.
+                            </td>
+                        </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Bottom Section: Help & Upload - HIDDEN FOR ADMIN */}
           {!isAdmin && (
