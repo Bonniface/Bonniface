@@ -169,18 +169,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
             <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                 <div className="flex items-center">
                     <img 
-                        src="/assets/boni_avatar.jpg" 
+                        src="../assets/boni_avatar.jpg" 
                         alt="Bonniface Logo" 
                         className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-blue-500/20"
-                        onError={(e) => {
-                            // Fallback to text icon if image fails
-                            e.currentTarget.style.display = 'none';
-                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                        }}
+                        
                     />
-                    <div className="hidden w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-                        <Rocket size={22} className="-ml-0.5 mt-0.5" />
-                    </div>
+                    
                     <span className="font-bold text-[28px] text-white ml-3 tracking-wide">Bonniface</span>
                 </div>
 
