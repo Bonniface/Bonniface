@@ -167,20 +167,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
         {/* Navigation - Glassmorphism */}
         <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-navy-950/30 backdrop-blur-md">
             <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center">
                     <img 
-                      src="/assets/boni_avatar.jpg" 
-                      alt="Bonniface Logo" 
-                      className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-blue-500/20"
-                      onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                      }}
+                        src="/assets/boni_avatar.jpg" 
+                        alt="Bonniface Logo" 
+                        className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-blue-500/20"
+                        onError={(e) => {
+                            // Fallback to text icon if image fails
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
                     />
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20 hidden">
-                        B
+                    <div className="hidden w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                        <Rocket size={22} className="-ml-0.5 mt-0.5" />
                     </div>
-                    <span className="font-bold text-xl text-white tracking-tight">Bonniface</span>
+                    <span className="font-bold text-[28px] text-white ml-3 tracking-wide">Bonniface</span>
                 </div>
 
                 {/* Desktop Nav */}
@@ -492,18 +493,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
 
         <footer className="py-12 px-6 border-t border-white/5 bg-navy-950 relative z-10">
             <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-                 <div className="flex items-center gap-2">
+                 <div className="flex items-center">
                     <img 
-                      src="/assets/boni_avatar.jpg" 
-                      alt="Bonniface Logo" 
-                      className="w-8 h-8 rounded-lg object-cover"
-                      onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                      }}
+                        src="/assets/boni_avatar.jpg" 
+                        alt="Bonniface Logo" 
+                        className="w-8 h-8 rounded-lg object-cover shadow-lg"
+                        
                     />
-                    <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center font-bold text-white hidden">B</div>
-                    <span className="font-bold text-white">Bonniface</span>
+                    
+                    <span className="font-bold text-white text-xl ml-3 tracking-wide">Bonniface</span>
                  </div>
                  <div className="text-slate-500 text-sm">© 2025 Bonniface. Creative Development & AI.</div>
                  <div className="flex gap-4">

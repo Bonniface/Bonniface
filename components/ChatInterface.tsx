@@ -22,11 +22,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const onRefreshRef = useRef(onRefresh);
+  const activeSessionIdRef = useRef(activeSessionId);
 
-  // Update ref when prop changes to avoid stale closures in listeners
+  // Update refs when props/state change to avoid stale closures in listeners
   useEffect(() => {
     onRefreshRef.current = onRefresh;
   }, [onRefresh]);
+
+  useEffect(() => {
+    activeSessionIdRef.current = activeSessionId;
+  }, [activeSessionId]);
 
   // If sessions list changes and we have an active session ID that matches a new session, update active session data implicitly by render
   // If we were waiting for a new chat to be created (e.g. activeSessionId set but not in list yet), check if it appeared
@@ -91,7 +96,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
   useEffect(() => {
       // Listen to ALL message events (INSERT, UPDATE for read status) to update sidebar counts
       const channel = supabase
-        .channel(`public:messages`)
+        .channel(`chat_updates_${currentUser.id}`)
         .on('postgres_changes', { 
             event: '*', // Listen to INSERT and UPDATE (for is_read changes)
             schema: 'public', 
@@ -100,9 +105,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
             // Check if we need to mark as read immediately (if looking at active session)
             if (payload.eventType === 'INSERT') {
                 const newMsg = payload.new as any;
+                const currentActiveId = activeSessionIdRef.current;
+                
                 // If message is from the other person AND we are currently looking at this room
-                if (newMsg.user_id !== currentUser.id && newMsg.room_id === activeSessionId) {
-                     await api.markRoomAsRead(activeSessionId, currentUser.id);
+                if (newMsg.user_id !== currentUser.id && newMsg.room_id === currentActiveId) {
+                     await api.markRoomAsRead(currentActiveId, currentUser.id);
                 }
             }
 
@@ -114,7 +121,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
       return () => {
           supabase.removeChannel(channel);
       };
-  }, [activeSessionId, currentUser.id]);
+  }, [currentUser.id]); // Only re-subscribe if user changes
 
   const handleSessionClick = (id: string) => {
     setActiveSessionId(id);
@@ -224,7 +231,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
           </button>
         </div>
         
-        <div className="px-5 pb-2">
+        <div className="px-5 pb-2 pt-3">
             <div className="relative group">
                 <Search className="absolute left-3 top-2.5 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
                 <input 
@@ -235,42 +242,40 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
             </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto scroll-smooth">
+        <div className="flex-1 overflow-y-auto scroll-smooth py-2">
           {sessions.map(session => {
             const isUnread = session.unreadCount > 0;
             const lastMsg = session.messages[session.messages.length - 1];
             const isMe = lastMsg?.senderId === currentUser.id;
+            const isActive = activeSessionId === session.id;
 
             return (
             <div 
               key={session.id}
               onClick={() => handleSessionClick(session.id)}
-              className={`p-4 border-b border-slate-50 dark:border-navy-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-navy-800/50 transition-all duration-200 ${
-                activeSessionId === session.id 
-                  ? 'bg-blue-50/80 dark:bg-navy-800 border-l-4 border-l-blue-600 dark:border-l-cobalt-500 shadow-inner' 
-                  : isUnread 
-                      ? 'bg-slate-50 dark:bg-navy-800/30 border-l-4 border-l-transparent'
-                      : 'border-l-4 border-l-transparent'
+              className={`group p-4 border-b border-slate-50 dark:border-navy-800 cursor-pointer transition-all duration-200 ${
+                isActive
+                  ? 'bg-blue-50/80 dark:bg-navy-800/80 border-l-4 border-l-blue-600 dark:border-l-cobalt-500 shadow-sm' 
+                  : 'hover:bg-slate-50 dark:hover:bg-navy-800/30 border-l-4 border-l-transparent'
               }`}
             >
               <div className="flex gap-4 items-center">
                 <div className="relative shrink-0">
                     <img 
                         src={session.participantAvatar} 
-                        alt="" 
-                        className="w-12 h-12 rounded-full bg-slate-200 dark:bg-navy-700 object-cover shadow-sm border border-slate-100 dark:border-navy-600" 
+                        alt={session.participantName}
+                        className={`w-12 h-12 rounded-full object-cover shadow-sm border border-slate-100 dark:border-navy-600 transition-transform duration-200 ${isActive ? 'scale-105 ring-2 ring-blue-100 dark:ring-navy-600' : 'group-hover:scale-105'}`} 
                     />
-                    {/* Online status indicator mock */}
                     <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-navy-900 rounded-full"></div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center mb-1">
-                    <div className="flex items-center gap-2 max-w-[70%]">
-                        <h3 className={`text-base font-bold truncate ${isUnread || activeSessionId === session.id ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-200'}`}>
+                    <div className="flex items-center gap-2 min-w-0 pr-2">
+                        <h3 className={`text-base font-bold truncate ${isActive || isUnread ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-200'}`}>
                             {session.participantName}
                         </h3>
                         {session.unreadCount > 0 && (
-                            <span className="flex items-center justify-center bg-red-500 text-white text-[10px] font-bold px-1.5 h-4 rounded-full min-w-[1.2rem] shadow-sm shadow-red-500/20 animate-in zoom-in duration-300">
+                            <span className="shrink-0 flex items-center justify-center bg-blue-600 dark:bg-cobalt-500 text-white text-[10px] font-bold px-1.5 h-4 rounded-full min-w-[1.2rem] shadow-sm shadow-blue-500/20 animate-in zoom-in duration-300">
                                 {session.unreadCount > 99 ? '99+' : session.unreadCount}
                             </span>
                         )}
@@ -281,7 +286,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ sessions, currentUser, on
                   </div>
                   
                   <div className="flex justify-between items-center">
-                      <p className={`text-sm truncate flex-1 ${isUnread ? 'text-slate-900 dark:text-white font-semibold' : 'text-slate-500 dark:text-slate-400'}`}>
+                      <p className={`text-sm truncate flex-1 pr-4 ${isUnread ? 'text-slate-900 dark:text-white font-semibold' : 'text-slate-500 dark:text-slate-400'}`}>
                         {isMe && <span className="text-slate-400 dark:text-slate-500 mr-1">You:</span>}
                         {session.lastMessage}
                       </p>

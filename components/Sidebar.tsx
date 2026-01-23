@@ -52,23 +52,16 @@ const Sidebar: React.FC<SidebarProps> = ({ user, currentView, onChangeView, onLo
       }`}>
         {/* Brand */}
         <div className="flex items-center justify-between mb-10 mt-2 px-2">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center">
             <img 
               src="/assets/boni_avatar.jpg" 
               alt="Bonniface Logo" 
               className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-blue-600/20 dark:shadow-cobalt-500/20"
-              onError={(e) => {
-                // Fallback to icon if image fails
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-              }}
+              
             />
-            <div className="w-10 h-10 rounded-xl bg-blue-600 dark:bg-gradient-to-br dark:from-cobalt-500 dark:to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-600/20 dark:shadow-cobalt-500/20 hidden">
-              <ShieldCheck className="text-white" size={24} />
-            </div>
+            
             <div>
-              <h1 className="text-slate-900 dark:text-white font-bold text-lg tracking-tight">Bonniface</h1>
-              <p className="text-slate-500 text-xs font-medium">Portal v2.0</p>
+              <h1 className="text-slate-900 dark:text-white font-bold text-[28px] ml-3 tracking-wide">Bonniface</h1>
             </div>
           </div>
           <button 
