@@ -65,6 +65,17 @@ export interface Invoice {
   status: 'Paid' | 'Pending' | 'Overdue';
 }
 
+export interface Booking {
+  id: string;
+  userId: string;
+  clientName: string;
+  date: string;
+  time: string;
+  status: 'Confirmed' | 'Pending' | 'Cancelled';
+  serviceType: string;
+  createdAt?: string;
+}
+
 export interface PaymentMethod {
   id: string;
   last4: string;
@@ -95,4 +106,4 @@ export interface ChatSession {
   messages: Message[];
 }
 
-export type ViewState = 'OVERVIEW' | 'PROJECTS' | 'PROJECT_DETAILS' | 'MESSAGES' | 'NEW_PROJECT' | 'SETTINGS' | 'INVOICES' | 'BILLING' | 'ADD_PAYMENT_METHOD';
+export type ViewState = 'OVERVIEW' | 'PROJECTS' | 'PROJECT_DETAILS' | 'MESSAGES' | 'NEW_PROJECT' | 'SETTINGS' | 'INVOICES' | 'BILLING' | 'ADD_PAYMENT_METHOD' | 'BOOKINGS';

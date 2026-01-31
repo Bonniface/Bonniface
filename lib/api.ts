@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { Project, Invoice, PaymentMethod, ProjectFile, ProjectPhase, ServiceType, ProjectStatus, ChatSession, Message, User, UserRole } from '../types';
+import { Project, Invoice, PaymentMethod, ProjectFile, ProjectPhase, ServiceType, ProjectStatus, ChatSession, Message, User, UserRole, Booking } from '../types';
 
 // Helper to map DB snake_case to App camelCase
 const mapProject = (data: any): Project => ({
@@ -47,6 +47,17 @@ const mapInvoice = (data: any): Invoice => ({
   status: data.status
 });
 
+const mapBooking = (data: any): Booking => ({
+  id: data.id,
+  userId: data.user_id,
+  clientName: data.client_name,
+  date: data.booking_date,
+  time: data.booking_time,
+  status: data.status,
+  serviceType: data.service_type,
+  createdAt: data.created_at
+});
+
 const mapPaymentMethod = (data: any): PaymentMethod => ({
   id: data.id,
   last4: data.last4,
@@ -66,7 +77,6 @@ export const fetchUserProfile = async (userId: string): Promise<User | null> => 
 
   if (error || !data) return null;
 
-  // Determine avatar: DB > Admin Default > Generated
   let avatarUrl = data.avatar_url;
   if (!avatarUrl) {
       if (data.role === 'ADMIN') avatarUrl = '/assets/boni_avatar.jpg';
@@ -114,6 +124,42 @@ export const fetchInvoices = async (clientName?: string, isAdmin?: boolean): Pro
     return [];
   }
   return data.map(mapInvoice);
+};
+
+export const fetchBookings = async (userId?: string, isAdmin?: boolean): Promise<Booking[]> => {
+  let query = supabase.from('bookings').select('*').order('booking_date', { ascending: true });
+  
+  if (!isAdmin && userId) {
+    query = query.eq('user_id', userId);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error('Error fetching bookings:', error);
+    return [];
+  }
+  return data.map(mapBooking);
+};
+
+export const createBooking = async (userId: string, name: string, date: string, time: string, service: string = 'Consultation'): Promise<Booking | null> => {
+  const { data, error } = await supabase
+    .from('bookings')
+    .insert([{
+      user_id: userId,
+      client_name: name,
+      booking_date: date,
+      booking_time: time,
+      service_type: service,
+      status: 'Confirmed'
+    }])
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating booking:", error);
+    return null;
+  }
+  return mapBooking(data);
 };
 
 export const markInvoiceAsPaid = async (invoiceId: string, projectId: string): Promise<boolean> => {
@@ -393,11 +439,9 @@ export const updateUserProfile = async (userId: string, updates: { full_name?: s
 
 // --- CHAT FUNCTIONS ---
 
-// Helper to upload attachment
 export const uploadChatAttachment = async (file: File, roomId: string): Promise<string | null> => {
     const fileName = `chat/${roomId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     
-    // We use the same 'project-files' bucket for simplicity as defined in schema
     const { error: uploadError } = await supabase.storage
         .from('project-files')
         .upload(fileName, file);
@@ -415,20 +459,17 @@ export const uploadChatAttachment = async (file: File, roomId: string): Promise<
 };
 
 export const markRoomAsRead = async (roomId: string, userId: string) => {
-    // Mark all messages in this room NOT sent by current user as read
     const { error } = await supabase
         .from('messages')
         .update({ is_read: true })
         .eq('room_id', roomId)
-        .neq('user_id', userId) // Messages I received
+        .neq('user_id', userId)
         .eq('is_read', false);
         
     if (error) console.error("Error marking read:", error);
 };
 
 export const fetchUserChats = async (userId: string): Promise<ChatSession[]> => {
-  // Removed automatic creation of admin chat to allow user initiation
-  
   const { data: myRooms } = await supabase
     .from('room_members')
     .select('room_id')
@@ -445,7 +486,7 @@ export const fetchUserChats = async (userId: string): Promise<ChatSession[]> => 
       messages (id, user_id, content, created_at, is_read, file_url, message_type)
     `)
     .in('id', roomIds)
-    .order('created_at', { ascending: true, foreignTable: 'messages' }); // Order messages
+    .order('created_at', { ascending: true, foreignTable: 'messages' }); 
   
   if (!roomsData) return [];
 
@@ -467,7 +508,6 @@ export const fetchUserChats = async (userId: string): Promise<ChatSession[]> => 
      const otherUserId = roomMemberIds.find(uid => uid !== userId) || userId; 
      const profile = profilesMap.get(otherUserId) as any;
 
-     // Sort messages by time
      const sortedMessages = (room.messages || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
      const messages: Message[] = sortedMessages.map((m: any) => ({
@@ -479,15 +519,13 @@ export const fetchUserChats = async (userId: string): Promise<ChatSession[]> => 
         _fullDate: new Date(m.created_at),
         isRead: m.is_read,
         attachments: m.file_url ? [{
-            name: 'Attachment', // Simple fallback name
+            name: 'Attachment',
             type: m.message_type === 'image' ? 'img' : 'pdf',
             url: m.file_url
         }] : undefined
      }));
 
      const lastMsg = messages[messages.length - 1];
-     
-     // Calculate unread count (messages not from me, and not read)
      const unreadCount = sortedMessages.filter((m: any) => m.user_id !== userId && !m.is_read).length;
 
      return {
@@ -529,7 +567,7 @@ export const sendMessage = async (roomId: string, userId: string, content: strin
         .insert([{ 
             room_id: roomId, 
             user_id: userId, 
-            content: content || (file ? 'Sent a file' : ''), // Fallback text if just file
+            content: content || (file ? 'Sent a file' : ''), 
             message_type: messageType,
             file_url: fileUrl,
             is_read: false

@@ -4,12 +4,96 @@ import {
   Code2, GraduationCap, BarChart3, Brain, Zap, Terminal, 
   Cpu, LineChart, Database, Target, ShieldCheck, ChevronDown,
   Search, Lightbulb, Rocket, CheckCircle, Video, Users, MessageSquare,
-  Github, Phone, PenTool
+  Github, Phone, PenTool, ChevronRight, Sparkles, Send, MessageCircle, Bot, Music, Globe, Lock
 } from 'lucide-react';
 import { AuthModal } from './AuthModal';
 import ThreeHero from './ThreeHero';
-import { motion } from 'framer-motion';
+import BookingSection from './BookingSection';
+import { motion, AnimatePresence } from 'framer-motion';
 import { User } from '../types';
+
+const testimonials = [
+  {
+    id: 1,
+    name: "@svenkataram",
+    avatar: "https://i.pravatar.cc/150?u=sven",
+    text: "Gotta give incredible kudos to @steipete and his @moltbot - it's one of the first tools I've used that truly feels like magic. I've also set it up so it...",
+    color: "text-orange-500"
+  },
+  {
+    id: 2,
+    name: "@Hormold",
+    avatar: "https://i.pravatar.cc/150?u=horm",
+    text: "My @moltbot accidentally Lemonade Insurance because of the interpretation of my response. Truly living in the future.",
+    color: "text-orange-500"
+  },
+  {
+    id: 3,
+    name: "@karpathy",
+    avatar: "https://i.pravatar.cc/150?u=karp",
+    text: "Excellent reading thank you. Love oracle and Clawd. The integration is seamless and fast.",
+    color: "text-orange-500"
+  },
+  {
+    id: 4,
+    name: "@mike_kasberg",
+    avatar: "https://i.pravatar.cc/150?u=mike",
+    text: "Lol, this is hilarious, the AI is literally answering my emails better than I do. Truly a godsend for busy schedules.",
+    color: "text-orange-500"
+  },
+  {
+    id: 5,
+    name: "@alex_dev",
+    avatar: "https://i.pravatar.cc/150?u=alex",
+    text: "Bonniface helped us scale our RAG pipeline in record time. The precision and speed of delivery are unmatched in the industry.",
+    color: "text-orange-500"
+  },
+  {
+    id: 6,
+    name: "@sarah_j",
+    avatar: "https://i.pravatar.cc/150?u=sarah",
+    text: "The dashboard design is stunning. It's rare to find a developer who understands both deep learning and high-end UI/UX.",
+    color: "text-orange-500"
+  }
+];
+
+const integrations = [
+  { name: 'WhatsApp', icon: MessageSquare, color: 'text-green-500' },
+  { name: 'Telegram', icon: Send, color: 'text-blue-400' },
+  { name: 'Discord', icon: MessageCircle, color: 'text-indigo-400' },
+  { name: 'Slack', icon: SlackIcon, color: 'text-pink-500' },
+  { name: 'Signal', icon: Lock, color: 'text-blue-500' },
+  { name: 'iMessage', icon: MessageCircle, color: 'text-blue-500' },
+  { name: 'Claude', icon: Brain, color: 'text-orange-300' },
+  { name: 'GPT', icon: Bot, color: 'text-emerald-500' },
+  { name: 'Spotify', icon: Music, color: 'text-green-500' },
+  { name: 'Hue', icon: Lightbulb, color: 'text-yellow-400' },
+  { name: 'Obsidian', icon: Cpu, color: 'text-purple-400' },
+  { name: 'Twitter', icon: Twitter, color: 'text-slate-200' },
+  { name: 'Browser', icon: Globe, color: 'text-blue-400' },
+  { name: 'Gmail', icon: Mail, color: 'text-red-500' },
+  { name: 'GitHub', icon: Github, color: 'text-slate-200' }
+];
+
+function SlackIcon(props: any) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M5.042 15.123a2.52 2.52 0 0 1 2.52-2.52h2.52v5.04a2.52 2.52 0 0 1-2.52 2.52 2.52 2.52 0 0 1-2.52-2.52v-2.52zM15.123 18.958a2.52 2.52 0 0 1-2.52 2.52v-2.52h-2.52a2.52 2.52 0 0 1 0-5.04h5.04a2.52 2.52 0 0 1 0 5.04zM18.958 8.877a2.52 2.52 0 0 1-2.52 2.52h-2.52V6.357a2.52 2.52 0 0 1 2.52-2.52 2.52 2.52 0 0 1 2.52 2.52v2.52zM8.877 5.042a2.52 2.52 0 0 1 2.52-2.52v2.52h2.52a2.52 2.52 0 0 1 0 5.04H8.877a2.52 2.52 0 0 1 0-5.04z" />
+    </svg>
+  );
+}
+
+const TestimonialCard: React.FC<{ item: typeof testimonials[0] }> = ({ item }) => (
+  <div className="flex-shrink-0 w-[380px] bg-navy-900/80 backdrop-blur-md border border-white/5 p-6 rounded-2xl mx-3 group hover:border-orange-500/30 transition-all duration-300">
+      <div className="flex gap-4 items-start">
+          <img src={item.avatar} alt={item.name} className="w-12 h-12 rounded-full object-cover ring-2 ring-white/5 group-hover:ring-orange-500/30 transition-all" />
+          <div className="flex-1">
+              <p className="text-slate-300 text-sm leading-relaxed mb-3 italic">"{item.text}"</p>
+              <span className={`text-sm font-bold ${item.color} group-hover:brightness-125 transition-all`}>{item.name}</span>
+          </div>
+      </div>
+  </div>
+);
 
 interface LandingPageProps {
   onLogin: (user?: User) => void;
@@ -23,37 +107,32 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
   const [currentZoomIndex, setCurrentZoomIndex] = useState(0);
 
   const zoomImages = [
-    '/assets/zoomImage/header-bg0.png',
-    '/assets/zoomImage/header-bg1.png',
-    '/assets/zoomImage/header-bg2.png',
-    '/assets/zoomImage/header-bg3.png',
-    '/assets/zoomImage/header-bg4.png'
+    '../assets/zoomImage/header-bg0.png',
+    '../assets/zoomImage/header-bg1.png',
+    '../assets/zoomImage/header-bg2.png',
+    '../assets/zoomImage/header-bg3.png',
+    '../assets/zoomImage/header-bg4.png'
   ];
 
-  // Track FULL page scroll for 3D interactions (0 to 1)
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
       const windowHeight = window.innerHeight;
       const docHeight = document.documentElement.scrollHeight;
-      
-      // Calculate progress of the entire page
       const totalScrollable = docHeight - windowHeight;
       const progress = totalScrollable > 0 ? Math.min(Math.max(scrollY / totalScrollable, 0), 1) : 0;
-      
       setScrollProgress(progress);
     };
 
     window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Init
+    handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Image Carousel Timer
   useEffect(() => {
     const timer = setInterval(() => {
         setCurrentZoomIndex((prev) => (prev + 1) % zoomImages.length);
-    }, 4000); // Switch image every 4 seconds
+    }, 4000);
     return () => clearInterval(timer);
   }, []);
 
@@ -70,7 +149,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
     setIsMobileMenuOpen(false);
   }
 
-  // Animation variants
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
@@ -109,7 +187,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
     </motion.div>
   );
 
-  // Logo Component for Brands
   const BrandLogo = ({ name, className }: { name: string, className?: string }) => {
     switch (name) {
       case 'zoom':
@@ -127,9 +204,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
         );
       case 'slack':
         return (
-          <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-             <path d="M5.042 15.123a2.52 2.52 0 0 1 2.52-2.52h2.52v5.04a2.52 2.52 0 0 1-2.52 2.52 2.52 2.52 0 0 1-2.52-2.52v-2.52zM15.123 18.958a2.52 2.52 0 0 1-2.52 2.52v-2.52h-2.52a2.52 2.52 0 0 1 0-5.04h5.04a2.52 2.52 0 0 1 0 5.04zM18.958 8.877a2.52 2.52 0 0 1-2.52 2.52h-2.52V6.357a2.52 2.52 0 0 1 2.52-2.52 2.52 2.52 0 0 1 2.52 2.52v2.52zM8.877 5.042a2.52 2.52 0 0 1 2.52-2.52v2.52h2.52a2.52 2.52 0 0 1 0 5.04H8.877a2.52 2.52 0 0 1 0-5.04z" />
-          </svg>
+          <SlackIcon className={className} />
         );
       case 'discord':
          return (
@@ -156,15 +231,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
             onLogin={onLogin} 
         />
 
-        {/* 3D Background Layer - Fixed position to serve as dynamic background */}
         <div className="fixed inset-0 w-full h-full z-0">
              <ThreeHero scrollProgress={scrollProgress} />
         </div>
 
-        {/* Gradient Overlay for Readability */}
         <div className="fixed inset-0 w-full h-full pointer-events-none z-0 bg-gradient-to-b from-navy-950/20 via-transparent to-navy-950/80"></div>
 
-        {/* Navigation - Glassmorphism */}
         <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-navy-950/30 backdrop-blur-md">
             <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                 <div className="flex items-center">
@@ -172,16 +244,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
                         src="../assets/boni_avatar.jpg" 
                         alt="Bonniface Logo" 
                         className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-blue-500/20"
-                        
                     />
-                    
                     <span className="font-bold text-[28px] text-white ml-3 tracking-wide">Bonniface</span>
                 </div>
 
-                {/* Desktop Nav */}
                 <div className="hidden md:flex items-center gap-8">
                     <button onClick={() => scrollToSection('services')} className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Services</button>
                     <button onClick={() => scrollToSection('process')} className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Process</button>
+                    <button onClick={() => scrollToSection('booking')} className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Booking</button>
                     <button onClick={onNavigateToWork} className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Portfolio</button>
                     <button onClick={() => scrollToSection('about')} className="text-sm font-medium text-slate-300 hover:text-white transition-colors">About</button>
                     <button onClick={handleGetStarted} className="px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/10 text-white rounded-lg text-sm font-medium transition-all backdrop-blur-sm">
@@ -189,47 +259,36 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
                     </button>
                 </div>
 
-                {/* Mobile Toggle */}
                 <button className="md:hidden p-2 text-slate-400" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
                     {isMobileMenuOpen ? <X /> : <Menu />}
                 </button>
             </div>
 
-            {/* Mobile Nav */}
             {isMobileMenuOpen && (
                 <div className="md:hidden bg-navy-900/95 backdrop-blur-xl border-b border-navy-800 p-4 space-y-4 absolute w-full">
                     <button onClick={() => scrollToSection('services')} className="block w-full text-left py-2 px-4 hover:bg-white/5 rounded-lg">Services</button>
                     <button onClick={() => scrollToSection('process')} className="block w-full text-left py-2 px-4 hover:bg-white/5 rounded-lg">Process</button>
-                    <button onClick={onNavigateToWork} className="block w-full text-left py-2 px-4 hover:bg-white/5 rounded-lg">Portfolio</button>
+                    <button onClick={() => scrollToSection('booking')} className="block w-full text-left py-2 px-4 hover:bg-white/5 rounded-lg">Booking</button>
                     <button onClick={() => scrollToSection('about')} className="block w-full text-left py-2 px-4 hover:bg-white/5 rounded-lg">About</button>
                     <button onClick={handleGetStarted} className="block w-full text-center py-3 bg-blue-600 rounded-lg text-white font-medium">Get Started</button>
                 </div>
             )}
         </nav>
 
-        {/* Hero Section */}
         <section className="relative min-h-screen flex items-center justify-center pt-20 px-6 z-10">
             <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <motion.div 
-                    initial="hidden"
-                    animate="visible"
-                    variants={staggerContainer}
-                    className="text-left"
-                >
+                <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="text-left">
                     <motion.div variants={fadeIn} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold uppercase tracking-wider mb-6 backdrop-blur-md">
                         <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
                         Creative Developer & AI Consultant
                     </motion.div>
-                    
                     <motion.h1 variants={fadeIn} className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight tracking-tight">
                         Crafting <br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">Digital Intelligence</span>
                     </motion.h1>
-                    
                     <motion.p variants={fadeIn} className="text-lg md:text-xl text-slate-400 max-w-lg mb-10 leading-relaxed">
                         I build immersive web experiences and implement AI solutions that transform data into actionable strategy.
                     </motion.p>
-                    
                     <motion.div variants={fadeIn} className="flex flex-col sm:flex-row gap-4">
                         <button onClick={handleGetStarted} className="px-8 py-4 bg-white text-navy-950 rounded-xl font-bold transition-all hover:scale-105 shadow-xl shadow-white/5 flex items-center justify-center gap-2">
                             Start Project <ArrowRight size={20} />
@@ -239,35 +298,112 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
                         </button>
                     </motion.div>
                 </motion.div>
-                
-                {/* Right side area preserved for 3D element visibility */}
                 <div className="hidden lg:block h-[500px]"></div>
             </div>
-
-            {/* Scroll Indicator */}
-            <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1, y: [0, 10, 0] }}
-                transition={{ delay: 2, duration: 2, repeat: Infinity }}
-                className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-slate-500"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, y: [0, 10, 0] }} transition={{ delay: 2, duration: 2, repeat: Infinity }} className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-slate-500">
                 <span className="text-xs uppercase tracking-widest">Scroll to Discover</span>
                 <ChevronDown size={20} />
             </motion.div>
         </section>
 
-        {/* About Section - "Collaboration" Area with 3D Secondary Object */}
+        {/* What People Say - Testimonial Section */}
+        <section className="py-24 relative z-10 overflow-hidden bg-navy-950/40">
+            <div className="max-w-7xl mx-auto px-6 mb-12 flex justify-between items-end">
+                <div className="flex items-center gap-3">
+                    <span className="text-orange-600 font-bold text-3xl opacity-80">&gt;</span>
+                    <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">What People Say</h2>
+                </div>
+                <button className="flex items-center gap-2 text-orange-500 hover:text-orange-400 transition-colors font-semibold group">
+                    <span>View all</span>
+                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+            </div>
+
+            <div className="flex flex-col gap-6 relative">
+                <div className="flex overflow-hidden relative">
+                    <motion.div 
+                        className="flex whitespace-nowrap"
+                        animate={{ x: [0, -1920] }}
+                        transition={{ 
+                            x: {
+                                repeat: Infinity,
+                                repeatType: "loop",
+                                duration: 30,
+                                ease: "linear"
+                            }
+                        }}
+                    >
+                        {[...testimonials, ...testimonials].map((item, i) => (
+                            <TestimonialCard key={`row1-${i}`} item={item} />
+                        ))}
+                    </motion.div>
+                </div>
+
+                <div className="flex overflow-hidden relative">
+                    <motion.div 
+                        className="flex whitespace-nowrap"
+                        initial={{ x: -1920 }}
+                        animate={{ x: [ -1920, 0] }}
+                        transition={{ 
+                            x: {
+                                repeat: Infinity,
+                                repeatType: "loop",
+                                duration: 35,
+                                ease: "linear"
+                            }
+                        }}
+                    >
+                        {[...testimonials, ...testimonials].map((item, i) => (
+                            <TestimonialCard key={`row2-${i}`} item={item} />
+                        ))}
+                    </motion.div>
+                </div>
+                
+                <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-navy-950 to-transparent z-20"></div>
+                <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-navy-950 to-transparent z-20"></div>
+            </div>
+        </section>
+
+        {/* Works With Everything - Integrations Section */}
+        <section id="integrations" className="py-24 relative z-10 bg-navy-950">
+            <div className="max-w-7xl mx-auto px-6">
+                <div className="flex items-center gap-3 mb-12">
+                    <span className="text-orange-600 font-bold text-3xl opacity-80">&gt;</span>
+                    <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Works With Everything</h2>
+                </div>
+
+                <div className="flex flex-wrap gap-4 mb-16 justify-center">
+                    {integrations.map((item, i) => (
+                        <div 
+                          key={i} 
+                          className="flex items-center gap-3 px-6 py-3 rounded-full bg-navy-900/50 border border-white/5 hover:border-white/20 hover:bg-navy-900 transition-all cursor-default group"
+                        >
+                            <item.icon size={20} className={`${item.color} group-hover:scale-110 transition-transform`} />
+                            <span className="text-slate-300 font-medium">{item.name}</span>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8 pt-8">
+                    <button className="flex items-center gap-2 text-orange-500 hover:text-orange-400 font-bold transition-colors group">
+                        View all 50+ integrations <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                    </button>
+                    <div className="w-1 h-1 rounded-full bg-slate-700 hidden md:block"></div>
+                    <button className="flex items-center gap-2 text-emerald-500 hover:text-emerald-400 font-bold transition-colors group">
+                        See what people built <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                    </button>
+                </div>
+            </div>
+        </section>
+
         <section id="about" className="py-24 px-6 relative z-10 bg-navy-950/80 backdrop-blur-sm border-t border-white/5">
             <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-center">
-                {/* Left side empty for 3D secondary object (Torus) */}
                 <div className="hidden md:block h-[400px]"></div>
-
                 <div className="space-y-8">
                     <h2 className="text-3xl md:text-5xl font-bold text-white">Bridging Code, <br/>Design, & Intelligence.</h2>
                     <p className="text-slate-400 text-lg leading-relaxed">
                         In a world saturated with data, clarity is power. I combine advanced data science with creative frontend development to build tools that are not just functional, but intuitive and beautiful.
                     </p>
-                    
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         {[
                             { icon: Target, title: "Precision", desc: "Pixel-perfect implementation." },
@@ -286,14 +422,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
             </div>
         </section>
 
-        {/* Services Section */}
         <section id="services" className="py-24 px-6 relative z-10">
              <div className="max-w-7xl mx-auto">
                 <div className="text-center mb-16">
                     <span className="text-blue-500 font-bold tracking-wider uppercase text-sm">Services</span>
                     <h2 className="text-3xl md:text-5xl font-bold text-white mt-3 mb-4">Technical Expertise</h2>
                 </div>
-
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[
                         { icon: Code2, title: "Creative Development", desc: "3D web experiences, interactive dashboards, and modern React applications.", price: "from $2.5k" },
@@ -322,104 +456,66 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
              </div>
         </section>
 
-        {/* Process Section */}
+        <section id="booking" className="bg-slate-50 dark:bg-navy-950/40 relative z-10">
+            <BookingSection user={null} onBooked={() => {}} />
+        </section>
+
         <section id="process" className="py-24 px-6 relative z-10 bg-navy-950/80 backdrop-blur-sm border-t border-white/5">
             <div className="max-w-7xl mx-auto">
                 <div className="mb-16">
                     <span className="text-blue-500 font-bold tracking-wider uppercase text-sm">How I Work</span>
                     <h2 className="text-3xl md:text-5xl font-bold text-white mt-3 mb-4">The Process</h2>
                 </div>
-                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                     <div className="space-y-4">
-                        <ProcessStep 
-                            number="01" 
-                            title="Discovery & Strategy" 
-                            desc="We begin by diving deep into your goals, data structure, and user needs to architect a robust solution plan."
-                            icon={Search}
-                        />
-                        <ProcessStep 
-                            number="02" 
-                            title="Design & Modeling" 
-                            desc="I create high-fidelity UI prototypes and preliminary data models to validate our approach before coding."
-                            icon={Lightbulb}
-                        />
-                        <ProcessStep 
-                            number="03" 
-                            title="Development" 
-                            desc="Agile execution of the frontend and AI backend, with weekly check-ins to ensure we stay aligned."
-                            icon={Code2}
-                        />
-                        <ProcessStep 
-                            number="04" 
-                            title="Deployment & Handoff" 
-                            desc="Seamless deployment to your infrastructure, followed by comprehensive training and documentation."
-                            icon={Rocket}
-                        />
+                        <ProcessStep number="01" title="Discovery & Strategy" desc="We begin by diving deep into your goals, data structure, and user needs to architect a robust solution plan." icon={Search} />
+                        <ProcessStep number="02" title="Design & Modeling" desc="I create high-fidelity UI prototypes and preliminary data models to validate our approach before coding." icon={Lightbulb} />
+                        <ProcessStep number="03" title="Development" desc="Agile execution of the frontend and AI backend, with weekly check-ins to ensure we stay aligned." icon={Code2} />
+                        <ProcessStep number="04" title="Deployment & Handoff" desc="Seamless deployment to your infrastructure, followed by comprehensive training and documentation." icon={Rocket} />
                     </div>
-                    {/* The right side is intentionally empty to allow the Neural Network 3D scene to be visible here */}
                     <div className="hidden md:flex items-center justify-center relative"></div> 
                 </div>
             </div>
         </section>
 
-        {/* Collaboration Section (Zoom Call Carousel) */}
         <section className="py-24 px-6 relative z-10 bg-navy-900/30">
             <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
                 <div className="order-2 lg:order-1 relative">
-                    {/* Abstract decoration */}
                     <div className="absolute -inset-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl opacity-20 blur-xl"></div>
-                    
-                    {/* Image Frame */}
                     <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-navy-900 group aspect-video">
-                        {/* Browser/Window Header */}
                         <div className="absolute top-0 left-0 right-0 h-8 bg-navy-950/80 border-b border-white/5 flex items-center px-4 gap-2 z-20 backdrop-blur-sm">
                             <div className="w-3 h-3 rounded-full bg-red-500/20"></div>
                             <div className="w-3 h-3 rounded-full bg-yellow-500/20"></div>
                             <div className="w-3 h-3 rounded-full bg-green-500/20"></div>
                         </div>
-                        
-                        {/* Carousel Images */}
                         {zoomImages.map((img, index) => (
                             <img 
                                 key={img}
                                 src={img} 
-                                onError={(e) => {
-                                    // Fallback if image not found
-                                    e.currentTarget.src = "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=2664&auto=format&fit=crop";
-                                }}
+                                onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=2664&auto=format&fit=crop"; }}
                                 alt={`Client Zoom Meeting ${index + 1}`} 
-                                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
-                                    index === currentZoomIndex ? 'opacity-100' : 'opacity-0'
-                                }`}
+                                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${index === currentZoomIndex ? 'opacity-100' : 'opacity-0'}`}
                             />
                         ))}
-                        
-                        {/* Overlay Badge */}
                         <div className="absolute bottom-6 left-6 flex items-center gap-3 bg-black/60 backdrop-blur-md p-3 rounded-xl border border-white/10 shadow-lg z-20">
                             <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                             <span className="text-white text-sm font-medium">Live Weekly Sync</span>
                         </div>
                     </div>
                 </div>
-                
                 <div className="order-1 lg:order-2 space-y-6">
                     <span className="text-blue-500 font-bold tracking-wider uppercase text-sm">Collaboration</span>
                     <h2 className="text-3xl md:text-5xl font-bold text-white">Direct Access, <br/>Real-Time Alignment.</h2>
                     <p className="text-slate-400 text-lg leading-relaxed">
                         I believe great software is built through conversation, not just tickets. We schedule regular Zoom syncs to review milestones, demo features live, and pivot quickly based on your feedback.
                     </p>
-                    
                     <div className="space-y-4 pt-4">
-                        {/* Weekly Video Sprint Reviews */}
                         <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors">
                              <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
                                  <Video size={20} />
                              </div>
                              <span className="text-slate-300 font-medium">Weekly Video Sprint Reviews</span>
                         </div>
-
-                        {/* Direct Access & Collaboration Tools */}
                         <div className="flex flex-col gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5">
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center text-green-400 shrink-0">
@@ -427,30 +523,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
                                 </div>
                                 <span className="text-slate-300 font-medium">Direct Access for Academic & Coding</span>
                             </div>
-                            {/* Tools Grid */}
                             <div className="pl-14 flex flex-wrap gap-2 sm:gap-3 opacity-90">
-                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-medium" title="Zoom">
-                                    <BrandLogo name="zoom" className="w-3.5 h-3.5" /> Zoom
-                                </div>
-                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-300 text-xs font-medium" title="WhatsApp">
-                                    <BrandLogo name="whatsapp" className="w-3.5 h-3.5" /> WhatsApp
-                                </div>
-                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium" title="Overleaf">
-                                    <BrandLogo name="overleaf" className="w-3.5 h-3.5" /> Overleaf
-                                </div>
-                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-medium" title="Slack">
-                                    <BrandLogo name="slack" className="w-3.5 h-3.5" /> Slack
-                                </div>
-                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium" title="Discord">
-                                    <BrandLogo name="discord" className="w-3.5 h-3.5" /> Discord
-                                </div>
-                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-500/10 border border-slate-500/20 text-slate-300 text-xs font-medium" title="GitHub">
-                                    <Github size={14} /> GitHub
-                                </div>
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-medium" title="Zoom"><BrandLogo name="zoom" className="w-3.5 h-3.5" /> Zoom</div>
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-300 text-xs font-medium" title="WhatsApp"><BrandLogo name="whatsapp" className="w-3.5 h-3.5" /> WhatsApp</div>
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium" title="Overleaf"><BrandLogo name="overleaf" className="w-3.5 h-3.5" /> Overleaf</div>
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-medium" title="Slack"><BrandLogo name="slack" className="w-3.5 h-3.5" /> Slack</div>
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium" title="Discord"><BrandLogo name="discord" className="w-3.5 h-3.5" /> Discord</div>
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-500/10 border border-slate-500/20 text-slate-300 text-xs font-medium" title="GitHub"><Github size={14} /> GitHub</div>
                             </div>
                         </div>
-
-                        {/* Workshops */}
                         <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors">
                              <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
                                  <Users size={20} />
@@ -462,13 +543,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
             </div>
         </section>
 
-        {/* CTA Section */}
         <section className="py-24 px-6 relative z-10">
             <div className="max-w-4xl mx-auto text-center">
                 <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-12 relative overflow-hidden shadow-2xl shadow-blue-900/50">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
                     <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/20 rounded-full blur-3xl -ml-32 -mb-32"></div>
-                    
                     <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 relative z-10">Have an ambitious idea?</h2>
                     <p className="text-blue-100 text-lg md:text-xl mb-10 max-w-2xl mx-auto relative z-10">
                         Let's push the boundaries of what's possible with web technology and AI.
@@ -488,13 +567,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
         <footer className="py-12 px-6 border-t border-white/5 bg-navy-950 relative z-10">
             <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
                  <div className="flex items-center">
-                    <img 
-                        src="/assets/boni_avatar.jpg" 
-                        alt="Bonniface Logo" 
-                        className="w-8 h-8 rounded-lg object-cover shadow-lg"
-                        
-                    />
-                    
+                    <img src="../assets/boni_avatar.jpg" alt="Bonniface Logo" className="w-8 h-8 rounded-lg object-cover shadow-lg" />
                     <span className="font-bold text-white text-xl ml-3 tracking-wide">Bonniface</span>
                  </div>
                  <div className="text-slate-500 text-sm">© 2025 Bonniface. Creative Development & AI.</div>
