@@ -29,6 +29,14 @@ const projects = [
     img: "https://images.unsplash.com/photo-1530026405186-ed1f139313f8?q=80&w=2070&auto=format&fit=crop",
     link: "#",
     github: "#"
+  },
+  {
+    id: 4,
+    title: "Roldzif",
+    subtitle: "Medical Logistics Mobile App",
+    img: "https://images.unsplash.com/photo-1576091160550-2187580018f7?q=80&w=2070&auto=format&fit=crop",
+    link: "https://roldzif.netlify.app",
+    github: "#"
   }
 ];
 
@@ -70,7 +78,10 @@ export const MyWorkPage: React.FC<MyWorkPageProps> = ({ onBack }) => {
                  <p className="text-xl md:text-2xl text-blue-200 mb-10 font-light tracking-wide animate-in slide-in-from-bottom-8 duration-700 delay-100">{project.subtitle}</p>
                  
                  <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in fade-in duration-1000 delay-300">
-                     <button className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 shadow-xl shadow-blue-900/50">
+                     <button 
+                        onClick={() => window.open(project.link, '_blank')}
+                        className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 shadow-xl shadow-blue-900/50"
+                     >
                         View Project <ExternalLink size={18} />
                      </button>
                      <button className="px-8 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/20 rounded-full font-bold flex items-center justify-center gap-2 transition-all hover:scale-105">

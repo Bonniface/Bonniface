@@ -164,20 +164,22 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
     }
   };
 
-  const ProcessStep = ({ number, title, desc, icon: Icon }: any) => (
+  const ProcessStep = ({ number, title, desc, icon: Icon, index }: any) => (
     <motion.div 
-        initial={{ opacity: 0, x: -50 }}
-        whileInView={{ opacity: 1, x: 0 }}
-        viewport={{ once: true, margin: "-100px" }}
-        className="flex gap-6 group"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-50px" }}
+        transition={{ duration: 0.5, delay: index * 0.15 }}
+        className="flex gap-6 group relative"
     >
         <div className="flex flex-col items-center">
-            <div className="w-12 h-12 rounded-full border border-blue-500/30 bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold group-hover:bg-blue-600 group-hover:text-white transition-all shadow-lg shadow-blue-500/10 group-hover:shadow-blue-500/30">
+            <div className="w-12 h-12 rounded-full border border-blue-500/30 bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold group-hover:bg-blue-600 group-hover:text-white transition-all shadow-lg shadow-blue-500/10 group-hover:shadow-blue-500/30 relative z-10 bg-navy-950">
                 <Icon size={20} />
             </div>
-            <div className="w-0.5 h-full bg-slate-800 my-2 group-last:hidden"></div>
+            {/* Connected Line */}
+            <div className="w-0.5 flex-1 bg-slate-800 group-last:hidden"></div>
         </div>
-        <div className="pb-12">
+        <div className="pb-12 pt-1">
             <span className="text-sm font-bold text-blue-500/50 mb-1 block">STEP {number}</span>
             <h3 className="text-2xl font-bold text-white mb-3">{title}</h3>
             <p className="text-slate-400 leading-relaxed max-w-md">
@@ -275,7 +277,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
             )}
         </nav>
 
-        <section className="relative min-h-screen flex items-center justify-center pt-20 px-6 z-10">
+        <section className="relative min-h-screen flex flex-col items-center justify-center pt-32 pb-12 px-6 z-10 gap-16">
             <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="text-left">
                     <motion.div variants={fadeIn} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold uppercase tracking-wider mb-6 backdrop-blur-md">
@@ -298,70 +300,67 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
                         </button>
                     </motion.div>
                 </motion.div>
-                <div className="hidden lg:block h-[500px]"></div>
+                <div className="hidden lg:block h-[300px]"></div>
             </div>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, y: [0, 10, 0] }} transition={{ delay: 2, duration: 2, repeat: Infinity }} className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-slate-500">
+
+            {/* Testimonials integrated into hero */}
+            <div className="w-full max-w-[100vw] overflow-hidden">
+                 <div className="max-w-7xl mx-auto px-6 mb-8 flex justify-between items-end">
+                    <div className="flex items-center gap-3">
+                        <span className="text-orange-600 font-bold text-3xl opacity-80">&gt;</span>
+                        <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">What People Say</h2>
+                    </div>
+                </div>
+                
+                <div className="flex flex-col gap-6 relative">
+                    <div className="flex overflow-hidden relative">
+                        <motion.div 
+                            className="flex whitespace-nowrap"
+                            animate={{ x: [0, -1920] }}
+                            transition={{ 
+                                x: {
+                                    repeat: Infinity,
+                                    repeatType: "loop",
+                                    duration: 30,
+                                    ease: "linear"
+                                }
+                            }}
+                        >
+                            {[...testimonials, ...testimonials].map((item, i) => (
+                                <TestimonialCard key={`row1-${i}`} item={item} />
+                            ))}
+                        </motion.div>
+                    </div>
+
+                    <div className="flex overflow-hidden relative">
+                        <motion.div 
+                            className="flex whitespace-nowrap"
+                            initial={{ x: -1920 }}
+                            animate={{ x: [ -1920, 0] }}
+                            transition={{ 
+                                x: {
+                                    repeat: Infinity,
+                                    repeatType: "loop",
+                                    duration: 35,
+                                    ease: "linear"
+                                }
+                            }}
+                        >
+                            {[...testimonials, ...testimonials].map((item, i) => (
+                                <TestimonialCard key={`row2-${i}`} item={item} />
+                            ))}
+                        </motion.div>
+                    </div>
+                    
+                    <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-navy-950 to-transparent z-20"></div>
+                    <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-navy-950 to-transparent z-20"></div>
+                </div>
+            </div>
+
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, y: [0, 10, 0] }} transition={{ delay: 2, duration: 2, repeat: Infinity }} className="flex flex-col items-center gap-2 text-slate-500 mt-4">
                 <span className="text-xs uppercase tracking-widest">Scroll to Discover</span>
                 <ChevronDown size={20} />
             </motion.div>
-        </section>
-
-        {/* What People Say - Testimonial Section */}
-        <section className="py-24 relative z-10 overflow-hidden bg-navy-950/40">
-            <div className="max-w-7xl mx-auto px-6 mb-12 flex justify-between items-end">
-                <div className="flex items-center gap-3">
-                    <span className="text-orange-600 font-bold text-3xl opacity-80">&gt;</span>
-                    <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">What People Say</h2>
-                </div>
-                <button className="flex items-center gap-2 text-orange-500 hover:text-orange-400 transition-colors font-semibold group">
-                    <span>View all</span>
-                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                </button>
-            </div>
-
-            <div className="flex flex-col gap-6 relative">
-                <div className="flex overflow-hidden relative">
-                    <motion.div 
-                        className="flex whitespace-nowrap"
-                        animate={{ x: [0, -1920] }}
-                        transition={{ 
-                            x: {
-                                repeat: Infinity,
-                                repeatType: "loop",
-                                duration: 30,
-                                ease: "linear"
-                            }
-                        }}
-                    >
-                        {[...testimonials, ...testimonials].map((item, i) => (
-                            <TestimonialCard key={`row1-${i}`} item={item} />
-                        ))}
-                    </motion.div>
-                </div>
-
-                <div className="flex overflow-hidden relative">
-                    <motion.div 
-                        className="flex whitespace-nowrap"
-                        initial={{ x: -1920 }}
-                        animate={{ x: [ -1920, 0] }}
-                        transition={{ 
-                            x: {
-                                repeat: Infinity,
-                                repeatType: "loop",
-                                duration: 35,
-                                ease: "linear"
-                            }
-                        }}
-                    >
-                        {[...testimonials, ...testimonials].map((item, i) => (
-                            <TestimonialCard key={`row2-${i}`} item={item} />
-                        ))}
-                    </motion.div>
-                </div>
-                
-                <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-navy-950 to-transparent z-20"></div>
-                <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-navy-950 to-transparent z-20"></div>
-            </div>
         </section>
 
         {/* Works With Everything - Integrations Section */}
@@ -398,7 +397,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
 
         <section id="about" className="py-24 px-6 relative z-10 bg-navy-950/80 backdrop-blur-sm border-t border-white/5">
             <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-center">
-                <div className="hidden md:block h-[400px]"></div>
+                <div className="hidden md:block relative h-[500px] w-full max-w-md mx-auto group">
+                     <div className="absolute inset-0 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-2xl rotate-6 opacity-20 group-hover:rotate-3 transition-transform duration-700 blur-lg"></div>
+                     <img 
+                         src="../assets/boni_avatar.jpg" 
+                         alt="Bonniface Profile" 
+                         className="relative w-full h-full object-cover rounded-2xl shadow-2xl border border-white/10 z-10 grayscale hover:grayscale-0 transition-all duration-700"
+                     />
+                </div>
                 <div className="space-y-8">
                     <h2 className="text-3xl md:text-5xl font-bold text-white">Bridging Code, <br/>Design, & Intelligence.</h2>
                     <p className="text-slate-400 text-lg leading-relaxed">
@@ -467,11 +473,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
                     <h2 className="text-3xl md:text-5xl font-bold text-white mt-3 mb-4">The Process</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                    <div className="space-y-4">
-                        <ProcessStep number="01" title="Discovery & Strategy" desc="We begin by diving deep into your goals, data structure, and user needs to architect a robust solution plan." icon={Search} />
-                        <ProcessStep number="02" title="Design & Modeling" desc="I create high-fidelity UI prototypes and preliminary data models to validate our approach before coding." icon={Lightbulb} />
-                        <ProcessStep number="03" title="Development" desc="Agile execution of the frontend and AI backend, with weekly check-ins to ensure we stay aligned." icon={Code2} />
-                        <ProcessStep number="04" title="Deployment & Handoff" desc="Seamless deployment to your infrastructure, followed by comprehensive training and documentation." icon={Rocket} />
+                    <div className="flex flex-col">
+                        <ProcessStep number="01" title="Discovery & Strategy" desc="We begin by diving deep into your goals, data structure, and user needs to architect a robust solution plan." icon={Search} index={0} />
+                        <ProcessStep number="02" title="Design & Modeling" desc="I create high-fidelity UI prototypes and preliminary data models to validate our approach before coding." icon={Lightbulb} index={1} />
+                        <ProcessStep number="03" title="Development" desc="Agile execution of the frontend and AI backend, with weekly check-ins to ensure we stay aligned." icon={Code2} index={2} />
+                        <ProcessStep number="04" title="Deployment & Handoff" desc="Seamless deployment to your infrastructure, followed by comprehensive training and documentation." icon={Rocket} index={3} />
                     </div>
                     <div className="hidden md:flex items-center justify-center relative"></div> 
                 </div>
