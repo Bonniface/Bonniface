@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Loader2, Mail, Lock, AlertCircle, ArrowRight, KeyRound, ChevronLeft, ShieldAlert } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { User } from '../types';
+import boniAvatar from '../images/boni_avatar.jpg';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -140,7 +141,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin }
           <div className="p-8">
             <div className="text-center mb-8">
                 <img 
-                  src="/assets/boni_avatar.jpg" 
+                  src={boniAvatar} 
                   alt="Bonniface Logo" 
                   className="w-16 h-16 rounded-xl mx-auto mb-6 object-cover shadow-lg shadow-blue-600/20"
                   onError={(e) => {

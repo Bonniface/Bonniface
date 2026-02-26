@@ -1,5 +1,6 @@
 import React from 'react';
 import { Twitter, Linkedin, Mail } from 'lucide-react';
+import boniAvatar from '../images/boni_avatar.jpg';
 
 export const Footer: React.FC = () => {
   return (
@@ -7,7 +8,7 @@ export const Footer: React.FC = () => {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
                 <div className="flex items-center">
                 <img 
-                  src="/assets/boni_avatar.jpg" 
+                  src={boniAvatar} 
                   alt="Bonniface Logo" 
                   className="w-8 h-8 rounded-lg object-cover shadow-lg"
                  

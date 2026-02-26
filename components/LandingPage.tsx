@@ -11,6 +11,7 @@ import ThreeHero from './ThreeHero';
 import BookingSection from './BookingSection';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User } from '../types';
+import boniAvatar from '../images/boni_avatar.jpg';
 
 const testimonials = [
   {
@@ -58,6 +59,7 @@ const testimonials = [
 ];
 
 const integrations = [
+  { name: 'Supabase', icon: Database, color: 'text-emerald-400' },
   { name: 'WhatsApp', icon: MessageSquare, color: 'text-green-500' },
   { name: 'Telegram', icon: Send, color: 'text-blue-400' },
   { name: 'Discord', icon: MessageCircle, color: 'text-indigo-400' },
@@ -66,6 +68,7 @@ const integrations = [
   { name: 'iMessage', icon: MessageCircle, color: 'text-blue-500' },
   { name: 'Claude', icon: Brain, color: 'text-orange-300' },
   { name: 'GPT', icon: Bot, color: 'text-emerald-500' },
+  { name: 'Antigravity', icon: Zap, color: 'text-yellow-400' },
   { name: 'Spotify', icon: Music, color: 'text-green-500' },
   { name: 'Hue', icon: Lightbulb, color: 'text-yellow-400' },
   { name: 'Obsidian', icon: Cpu, color: 'text-purple-400' },
@@ -107,11 +110,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
   const [currentZoomIndex, setCurrentZoomIndex] = useState(0);
 
   const zoomImages = [
-    '../assets/zoomImage/header-bg0.png',
-    '../assets/zoomImage/header-bg1.png',
-    '../assets/zoomImage/header-bg2.png',
-    '../assets/zoomImage/header-bg3.png',
-    '../assets/zoomImage/header-bg4.png'
+    '/assets/zoomImage/header-bg0.png',
+    '/assets/zoomImage/header-bg1.png',
+    '/assets/zoomImage/header-bg2.png',
+    '/assets/zoomImage/header-bg3.png',
+    '/assets/zoomImage/header-bg4.png'
   ];
 
   useEffect(() => {
@@ -164,30 +167,60 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
     }
   };
 
-  const ProcessStep = ({ number, title, desc, icon: Icon, index }: any) => (
-    <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-50px" }}
-        transition={{ duration: 0.5, delay: index * 0.15 }}
-        className="flex gap-6 group relative"
-    >
-        <div className="flex flex-col items-center">
-            <div className="w-12 h-12 rounded-full border border-blue-500/30 bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold group-hover:bg-blue-600 group-hover:text-white transition-all shadow-lg shadow-blue-500/10 group-hover:shadow-blue-500/30 relative z-10 bg-navy-950">
-                <Icon size={20} />
-            </div>
-            {/* Connected Line */}
-            <div className="w-0.5 flex-1 bg-slate-800 group-last:hidden"></div>
-        </div>
-        <div className="pb-12 pt-1">
-            <span className="text-sm font-bold text-blue-500/50 mb-1 block">STEP {number}</span>
-            <h3 className="text-2xl font-bold text-white mb-3">{title}</h3>
-            <p className="text-slate-400 leading-relaxed max-w-md">
-                {desc}
-            </p>
-        </div>
-    </motion.div>
-  );
+  const ProcessStep = ({ number, title, desc, icon: Icon, index }: any) => {
+    return (
+      <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-50px" }}
+          transition={{ duration: 0.7, delay: index * 0.15, ease: "easeOut" }}
+          className="flex gap-8 group relative"
+      >
+          <div className="flex flex-col items-center">
+              <motion.div 
+                  initial={{ scale: 0 }}
+                  whileInView={{ scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ 
+                      type: "spring", 
+                      stiffness: 260, 
+                      damping: 20, 
+                      delay: index * 0.15 + 0.2 
+                  }}
+                  className="w-14 h-14 rounded-2xl border border-blue-500/30 bg-navy-900 flex items-center justify-center text-blue-400 font-bold group-hover:border-blue-500 group-hover:text-white transition-all shadow-xl shadow-blue-500/5 relative z-10"
+              >
+                  <Icon size={24} className="group-hover:scale-110 transition-transform" />
+                  <div className="absolute -inset-1 bg-blue-500/20 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+              </motion.div>
+              
+              {/* Animated Connecting Line */}
+              <div className="w-[2px] flex-1 bg-slate-800/50 group-last:hidden my-2 relative overflow-hidden">
+                  <motion.div 
+                    initial={{ height: 0 }}
+                    whileInView={{ height: '100%' }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8, delay: index * 0.15 + 0.4 }}
+                    className="absolute top-0 left-0 w-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.6)]"
+                  />
+              </div>
+          </div>
+          <div className="pb-16 pt-2">
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.15 + 0.3 }}
+              >
+                <span className="text-xs font-black text-blue-500/40 mb-2 block tracking-[0.2em] uppercase">Phase {number}</span>
+                <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-blue-400 transition-colors">{title}</h3>
+                <p className="text-slate-400 leading-relaxed max-w-md text-base">
+                    {desc}
+                </p>
+              </motion.div>
+          </div>
+      </motion.div>
+    );
+  };
 
   const BrandLogo = ({ name, className }: { name: string, className?: string }) => {
     switch (name) {
@@ -243,7 +276,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
             <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                 <div className="flex items-center">
                     <img 
-                        src="../assets/boni_avatar.jpg" 
+                        src={boniAvatar} 
                         alt="Bonniface Logo" 
                         className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-blue-500/20"
                     />
@@ -400,7 +433,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
                 <div className="hidden md:block relative h-[500px] w-full max-w-md mx-auto group">
                      <div className="absolute inset-0 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-2xl rotate-6 opacity-20 group-hover:rotate-3 transition-transform duration-700 blur-lg"></div>
                      <img 
-                         src="../assets/boni_avatar.jpg" 
+                         src={boniAvatar} 
                          alt="Bonniface Profile" 
                          className="relative w-full h-full object-cover rounded-2xl shadow-2xl border border-white/10 z-10 grayscale hover:grayscale-0 transition-all duration-700"
                      />
@@ -512,6 +545,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
                 <div className="order-1 lg:order-2 space-y-6">
                     <span className="text-blue-500 font-bold tracking-wider uppercase text-sm">Collaboration</span>
                     <h2 className="text-3xl md:text-5xl font-bold text-white">Direct Access, <br/>Real-Time Alignment.</h2>
+                    <h2 className="text-3xl md:text-5xl font-bold text-white">Direct Access, <br/>Real-Time Alignment.</h2>
                     <p className="text-slate-400 text-lg leading-relaxed">
                         I believe great software is built through conversation, not just tickets. We schedule regular Zoom syncs to review milestones, demo features live, and pivot quickly based on your feedback.
                     </p>
@@ -573,7 +607,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onNavigateToWork }) 
         <footer className="py-12 px-6 border-t border-white/5 bg-navy-950 relative z-10">
             <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
                  <div className="flex items-center">
-                    <img src="../assets/boni_avatar.jpg" alt="Bonniface Logo" className="w-8 h-8 rounded-lg object-cover shadow-lg" />
+                    <img src={boniAvatar} alt="Bonniface Logo" className="w-8 h-8 rounded-lg object-cover shadow-lg" />
                     <span className="font-bold text-white text-xl ml-3 tracking-wide">Bonniface</span>
                  </div>
                  <div className="text-slate-500 text-sm">© 2025 Bonniface. Creative Development & AI.</div>

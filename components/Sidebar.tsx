@@ -1,6 +1,7 @@
 import React from 'react';
 import { LayoutDashboard, FolderKanban, MessageSquare, PlusCircle, Settings, LogOut, Calendar, ShieldCheck, X, Receipt, CreditCard } from 'lucide-react';
 import { User, UserRole, ViewState } from '../types';
+import boniAvatar from '../images/boni_avatar.jpg';
 
 interface SidebarProps {
   user: User;
@@ -42,7 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, currentView, onChangeView, onLo
       <div className={`fixed top-0 left-0 bottom-0 z-50 w-64 bg-white dark:bg-navy-950 border-r border-slate-200 dark:border-navy-800 flex flex-col p-4 transition-transform duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between mb-10 mt-2 px-2">
           <div className="flex items-center">
-            <img src="../assets/boni_avatar.jpg" alt="Bonniface Logo" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-blue-600/20 dark:shadow-cobalt-500/20" />
+            <img src={boniAvatar} alt="Bonniface Logo" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-blue-600/20 dark:shadow-cobalt-500/20" />
             <div><h1 className="text-slate-900 dark:text-white font-bold text-[28px] ml-3 tracking-wide">Bonniface</h1></div>
           </div>
           <button onClick={onClose} className="lg:hidden p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"><X size={20} /></button>

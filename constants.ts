@@ -1,11 +1,12 @@
 import { User, UserRole } from './types';
+import boniAvatar from './images/boni_avatar.jpg';
 
 export const ADMIN_USER: User = {
   id: 'u-admin',
   name: 'Bonniface',
   email: 'admin@bonniface.com',
   role: UserRole.ADMIN,
-  avatarUrl: '/assets/boni_avatar.jpg'
+  avatarUrl: boniAvatar
 };
 
 export const CLIENT_USER: User = {

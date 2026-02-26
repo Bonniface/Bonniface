@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { Project, Invoice, PaymentMethod, ProjectFile, ProjectPhase, ServiceType, ProjectStatus, ChatSession, Message, User, UserRole, Booking } from '../types';
+import boniAvatar from '../images/boni_avatar.jpg';
 
 // Helper to map DB snake_case to App camelCase
 const mapProject = (data: any): Project => ({
@@ -79,7 +80,7 @@ export const fetchUserProfile = async (userId: string): Promise<User | null> => 
 
   let avatarUrl = data.avatar_url;
   if (!avatarUrl) {
-      if (data.role === 'ADMIN') avatarUrl = '/assets/boni_avatar.jpg';
+      if (data.role === 'ADMIN') avatarUrl = boniAvatar;
       else avatarUrl = `https://picsum.photos/seed/${userId}/200/200`;
   }
 
