@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { User, UserRole, Booking } from '../types';
 import BookingSection from './BookingSection';
-import { Calendar, Clock, User as UserIcon, Plus, X, ArrowLeft } from 'lucide-react';
+import { Calendar, Clock, User as UserIcon, Plus, X, ArrowLeft, Loader2 } from 'lucide-react';
+import * as api from '../lib/api';
 
 interface BookingsPageProps {
   user: User;
@@ -10,7 +11,16 @@ interface BookingsPageProps {
 
 const BookingsPage: React.FC<BookingsPageProps> = ({ user, bookings }) => {
   const [isBookingMode, setIsBookingMode] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
   const isAdmin = user.role === UserRole.ADMIN;
+
+  const handleCancel = async (bookingId: string) => {
+      if (window.confirm('Are you sure you want to cancel this booking?')) {
+          setProcessingId(bookingId);
+          await api.cancelBooking(bookingId);
+          setProcessingId(null);
+      }
+  };
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -79,11 +89,15 @@ const BookingsPage: React.FC<BookingsPageProps> = ({ user, bookings }) => {
                       </div>
 
                       <div className="flex gap-2 pt-4 border-t border-slate-50 dark:border-navy-800">
-                          <button className="flex-1 text-xs font-bold py-2 px-3 rounded-lg border border-slate-200 dark:border-navy-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-navy-800 transition-colors">
+                          <button onClick={() => alert('Reschedule functionality coming soon!')} className="flex-1 text-xs font-bold py-2 px-3 rounded-lg border border-slate-200 dark:border-navy-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-navy-800 transition-colors">
                               Reschedule
                           </button>
-                          <button className="flex-1 text-xs font-bold py-2 px-3 rounded-lg border border-transparent text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors">
-                              Cancel
+                          <button 
+                              disabled={processingId === booking.id || booking.status === 'Cancelled'}
+                              onClick={() => handleCancel(booking.id)} 
+                              className="flex-1 text-xs font-bold py-2 px-3 flex justify-center items-center gap-2 rounded-lg border border-transparent text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                              {processingId === booking.id ? <Loader2 size={14} className="animate-spin" /> : 'Cancel'}
                           </button>
                       </div>
                   </div>
