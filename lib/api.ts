@@ -179,13 +179,13 @@ export const cancelBooking = async (bookingId: string): Promise<boolean> => {
 export const rescheduleBooking = async (bookingId: string, newDate: string, newTime: string): Promise<boolean> => {
   const { error } = await supabase
     .from('bookings')
-    .update({ 
-      booking_date: newDate, 
-      booking_time: newTime, 
-      status: 'Confirmed' 
+    .update({
+      booking_date: newDate,
+      booking_time: newTime,
+      status: 'Confirmed'
     })
     .eq('id', bookingId);
-    
+
   if (error) {
     console.error("Error rescheduling booking:", error);
     return false;
