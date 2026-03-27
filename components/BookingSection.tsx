@@ -7,9 +7,10 @@ interface BookingSectionProps {
     user: User | null;
     onBooked?: () => void;
     embedded?: boolean; // If in dashboard, styles change slightly
+    rescheduleBookingId?: string | null;
 }
 
-const BookingSection: React.FC<BookingSectionProps> = ({ user, onBooked, embedded = false }) => {
+const BookingSection: React.FC<BookingSectionProps> = ({ user, onBooked, embedded = false, rescheduleBookingId = null }) => {
     const [selectedDate, setSelectedDate] = useState<number>(5);
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,12 +36,17 @@ const BookingSection: React.FC<BookingSectionProps> = ({ user, onBooked, embedde
         setIsSubmitting(true);
         try {
             const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDate.toString().padStart(2, '0')}`;
-            const result = await api.createBooking(user.id, user.name, dateStr, selectedTime);
+            let result;
+            if (rescheduleBookingId) {
+                result = await api.rescheduleBooking(rescheduleBookingId, dateStr, selectedTime);
+            } else {
+                result = await api.createBooking(user.id, user.name, dateStr, selectedTime);
+            }
             if (result) {
                 setBookedSuccess(true);
             }
         } catch (e) {
-            alert("Booking failed. Please try again.");
+            alert(`${rescheduleBookingId ? 'Reschedule' : 'Booking'} failed. Please try again.`);
         } finally {
             setIsSubmitting(false);
         }
@@ -52,10 +58,12 @@ const BookingSection: React.FC<BookingSectionProps> = ({ user, onBooked, embedde
                 <div className="w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 mb-6">
                     <CheckCircle2 size={48} />
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Booking Confirmed!</h3>
+               <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{rescheduleBookingId ? 'Booking Rescheduled!' : 'Booking Confirmed!'}</h3>
                 <p className="text-slate-500 max-w-xs mx-auto mb-8">Your 1-on-1 strategy call is set for {monthName} {selectedDate}th at {selectedTime}.</p>
                 <div className="flex gap-4">
-                    <button onClick={() => setBookedSuccess(false)} className="text-blue-600 font-bold hover:underline">Book another</button>
+                    {!rescheduleBookingId && (
+                        <button onClick={() => setBookedSuccess(false)} className="text-blue-600 font-bold hover:underline">Book another</button>
+                    )}
                     {onBooked && (
                         <button onClick={onBooked} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors">Return to Bookings</button>
                     )}
@@ -163,7 +171,7 @@ const BookingSection: React.FC<BookingSectionProps> = ({ user, onBooked, embedde
                         disabled={!selectedTime || isSubmitting}
                         className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2"
                     >
-                        {isSubmitting ? <Loader2 className="animate-spin" /> : <><Sparkles size={18} /> Confirm Booking</>}
+                        {isSubmitting ? <Loader2 className="animate-spin" /> : <><Sparkles size={18} /> {rescheduleBookingId ? 'Confirm Reschedule' : 'Confirm Booking'}</>}
                     </button>
                 </div>
             </div>

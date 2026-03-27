@@ -176,6 +176,23 @@ export const cancelBooking = async (bookingId: string): Promise<boolean> => {
   return true;
 };
 
+export const rescheduleBooking = async (bookingId: string, newDate: string, newTime: string): Promise<boolean> => {
+  const { error } = await supabase
+    .from('bookings')
+    .update({ 
+      booking_date: newDate, 
+      booking_time: newTime, 
+      status: 'Confirmed' 
+    })
+    .eq('id', bookingId);
+    
+  if (error) {
+    console.error("Error rescheduling booking:", error);
+    return false;
+  }
+  return true;
+};
+
 export const markInvoiceAsPaid = async (invoiceId: string, projectId: string): Promise<boolean> => {
   const { error: invError } = await supabase
     .from('invoices')

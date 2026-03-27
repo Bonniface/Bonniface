@@ -11,6 +11,7 @@ interface BookingsPageProps {
 
 const BookingsPage: React.FC<BookingsPageProps> = ({ user, bookings }) => {
   const [isBookingMode, setIsBookingMode] = useState(false);
+  const [reschedulingId, setReschedulingId] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const isAdmin = user.role === UserRole.ADMIN;
 
@@ -44,7 +45,10 @@ const BookingsPage: React.FC<BookingsPageProps> = ({ user, bookings }) => {
         
         {!isAdmin && (
            <button 
-             onClick={() => setIsBookingMode(!isBookingMode)}
+             onClick={() => {
+                 setIsBookingMode(!isBookingMode);
+                 if (isBookingMode) setReschedulingId(null);
+             }}
              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium shadow-md transition-all ${
                  isBookingMode 
                  ? 'bg-slate-200 text-slate-700 dark:bg-navy-800 dark:text-slate-300' 
@@ -59,7 +63,15 @@ const BookingsPage: React.FC<BookingsPageProps> = ({ user, bookings }) => {
 
       {isBookingMode ? (
           <div className="bg-slate-50 dark:bg-navy-950/20 rounded-3xl p-4 md:p-8 animate-in fade-in slide-in-from-bottom-4">
-              <BookingSection user={user} embedded onBooked={() => setIsBookingMode(false)} />
+              <BookingSection 
+                  user={user} 
+                  embedded 
+                  rescheduleBookingId={reschedulingId}
+                  onBooked={() => {
+                      setIsBookingMode(false);
+                      setReschedulingId(null);
+                  }} 
+              />
           </div>
       ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -89,7 +101,14 @@ const BookingsPage: React.FC<BookingsPageProps> = ({ user, bookings }) => {
                       </div>
 
                       <div className="flex gap-2 pt-4 border-t border-slate-50 dark:border-navy-800">
-                          <button onClick={() => alert('Reschedule functionality coming soon!')} className="flex-1 text-xs font-bold py-2 px-3 rounded-lg border border-slate-200 dark:border-navy-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-navy-800 transition-colors">
+                          <button 
+                              disabled={booking.status === 'Cancelled'}
+                              onClick={() => {
+                                  setReschedulingId(booking.id);
+                                  setIsBookingMode(true);
+                              }} 
+                              className="flex-1 text-xs font-bold py-2 px-3 rounded-lg border border-slate-200 dark:border-navy-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-navy-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
                               Reschedule
                           </button>
                           <button 
